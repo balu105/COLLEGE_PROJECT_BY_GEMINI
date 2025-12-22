@@ -1,20 +1,21 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Helper to clean and parse JSON from AI response
+// Helper to safely clean and parse JSON from AI response
 const safeJsonParse = (text: string | undefined) => {
   if (!text) return {};
   try {
+    // Strip potential markdown JSON code blocks
     const cleaned = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("JSON Parse Error. Text received:", text);
-    return { error: "Failed to parse model response as JSON", raw: text };
+    console.error("Gemini Response JSON Parse Error. Raw text:", text);
+    return { error: "Failed to parse model response", raw: text };
   }
 };
 
 export default async function handler(req: any, res: any) {
-  // 1. Handle CORS Preflight
+  // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -22,15 +23,16 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  // 2. Strict Method Check
+  // Enforce POST method for security
   if (req.method !== 'POST') {
-    console.warn(`Attempted non-POST request: ${req.method} to /api/gemini`);
-    return res.status(405).json({ error: 'Method not allowed. This endpoint only accepts POST requests.' });
+    return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { action, payload } = req.body;
 
+  // Strict API Key Validation
   if (!process.env.API_KEY) {
+    console.error("CRITICAL: API_KEY is missing in process.env");
     return res.status(500).json({ 
       error: 'API_KEY is missing in the server environment.' 
     });
@@ -43,7 +45,7 @@ export default async function handler(req: any, res: any) {
       case 'generateJobDescription': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate a concise, professional job description for: "${payload.role}". Focus on key technical responsibilities. Output ONLY valid JSON.`,
+          contents: `Generate a concise, professional job description for: "${payload.role}". Output ONLY valid JSON.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -59,15 +61,11 @@ export default async function handler(req: any, res: any) {
       case 'analyzeResume': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Retrieve current 2025 standards for a "${payload.targetRole}". 
-          Analyze this resume against those standards and JD: ${payload.targetJD}. 
-          Resume: ${payload.resumeText}
-          Output JSON: { "name": string, "skills": string[], "resumeScore": number, "resumeFeedback": string }`,
+          contents: `Analyze this resume for a "${payload.targetRole}" role. Resume: ${payload.resumeText}. Target JD: ${payload.targetJD}. Output JSON: { "name": string, "skills": string[], "resumeScore": number, "resumeFeedback": string }`,
           config: {
             tools: [{ googleSearch: {} }]
           }
         });
-        
         return res.status(200).json({
           ...safeJsonParse(response.text),
           groundingSources: extractGrounding(response)
@@ -100,7 +98,7 @@ export default async function handler(req: any, res: any) {
       case 'generateCodingChallenge': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Generate a coding challenge for: "${payload.role}". Skills: ${payload.skills.join(", ")}. JD: ${payload.targetJD}.`,
+          contents: `Create a coding challenge for "${payload.role}". Skills: ${payload.skills.join(", ")}.`,
           config: {
             thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
@@ -122,7 +120,7 @@ export default async function handler(req: any, res: any) {
       case 'evaluateCode': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate code for: "${payload.question}". Code: \n${payload.code}`,
+          contents: `Evaluate code for "${payload.question}". Code: \n${payload.code}`,
           config: {
             thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
@@ -144,7 +142,7 @@ export default async function handler(req: any, res: any) {
       case 'getNextInterviewQuestion': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `AI Recruiter. Role: ${payload.role}. History: \n${payload.transcript.join('\n')}`,
+          contents: `AI Recruiter. Role: ${payload.role}. Transcript: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -160,7 +158,7 @@ export default async function handler(req: any, res: any) {
       case 'evaluateInterview': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate transcript: \n${payload.transcript.join('\n')}`,
+          contents: `Evaluate interview: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -181,7 +179,7 @@ export default async function handler(req: any, res: any) {
       case 'calculateJRI': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Calculate JRI for: ${JSON.stringify(payload.data)}. Use 2025 market context.`,
+          contents: `Calculate Job Readiness Index for: ${JSON.stringify(payload.data)}. Use 2025 market trends.`,
           config: {
             tools: [{ googleSearch: {} }]
           }
@@ -196,10 +194,10 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error: any) {
-    console.error('Gemini API Error:', error);
+    console.error('Gemini SDK Error:', error);
     return res.status(500).json({ 
-      error: 'Internal Server Error', 
-      message: error.message 
+      error: 'Backend request failed', 
+      details: error.message 
     });
   }
 }
