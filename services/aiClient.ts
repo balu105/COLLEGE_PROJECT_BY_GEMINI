@@ -2,22 +2,37 @@
 /**
  * Frontend API Wrapper
  * All calls are proxied through server-side /api/gemini for security.
- * NO Gemini SDK or process.env.API_KEY is referenced here.
  */
 
 async function callApi(action: string, payload: any) {
-  const response = await fetch('/api/gemini', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action, payload })
-  });
+  try {
+    const response = await fetch('/api/gemini', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify({ action, payload })
+    });
 
-  if (!response.ok) {
-    const errorData = await response.json();
-    throw new Error(errorData.error || 'Failed to fetch from Gemini Proxy');
+    if (!response.ok) {
+      const errorText = await response.text();
+      let errorData;
+      try {
+        errorData = JSON.parse(errorText);
+      } catch (e) {
+        errorData = { error: 'Unknown server error', raw: errorText };
+      }
+      
+      console.error(`API Error [${action}]:`, errorData);
+      throw new Error(errorData.error || errorData.message || 'Failed to fetch from Gemini Proxy');
+    }
+
+    return response.json();
+  } catch (err: any) {
+    console.error(`Network Error [${action}]:`, err);
+    throw err;
   }
-
-  return response.json();
 }
 
 export const generateJobDescription = async (role: string) => {

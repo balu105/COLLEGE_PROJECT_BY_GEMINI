@@ -5,28 +5,34 @@ import { GoogleGenAI, Type } from "@google/genai";
 const safeJsonParse = (text: string | undefined) => {
   if (!text) return {};
   try {
-    // Remove markdown code blocks if the model included them
     const cleaned = text.replace(/```json\n?|```/g, '').trim();
     return JSON.parse(cleaned);
   } catch (e) {
     console.error("JSON Parse Error. Text received:", text);
-    // Return a structured error or empty object instead of crashing
     return { error: "Failed to parse model response as JSON", raw: text };
   }
 };
 
 export default async function handler(req: any, res: any) {
+  // 1. Handle CORS Preflight
+  if (req.method === 'OPTIONS') {
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+    return res.status(200).end();
+  }
+
+  // 2. Strict Method Check
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    console.warn(`Attempted non-POST request: ${req.method} to /api/gemini`);
+    return res.status(405).json({ error: 'Method not allowed. This endpoint only accepts POST requests.' });
   }
 
   const { action, payload } = req.body;
 
-  // 1. Validate API Key Presence
   if (!process.env.API_KEY) {
-    console.error("CRITICAL: API_KEY is not defined in environment variables.");
     return res.status(500).json({ 
-      error: 'API configuration error: Gemini API Key is missing. Please add API_KEY to your environment variables.' 
+      error: 'API_KEY is missing in the server environment.' 
     });
   }
 
@@ -37,7 +43,7 @@ export default async function handler(req: any, res: any) {
       case 'generateJobDescription': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate a concise, professional job description for the role: "${payload.role}". Focus on key technical responsibilities. Output ONLY valid JSON.`,
+          contents: `Generate a concise, professional job description for: "${payload.role}". Focus on key technical responsibilities. Output ONLY valid JSON.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -51,17 +57,14 @@ export default async function handler(req: any, res: any) {
       }
 
       case 'analyzeResume': {
-        // Use flash model for search grounding as per guidelines example
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Retrieve current 2025 industry standards for a "${payload.targetRole}" position. 
-          Analyze this resume against those standards and this specific JD: ${payload.targetJD}. 
+          contents: `Retrieve current 2025 standards for a "${payload.targetRole}". 
+          Analyze this resume against those standards and JD: ${payload.targetJD}. 
           Resume: ${payload.resumeText}
-          Output the analysis as a JSON object with properties: name, skills (array), resumeScore (number 0-100), and resumeFeedback (string).`,
+          Output JSON: { "name": string, "skills": string[], "resumeScore": number, "resumeFeedback": string }`,
           config: {
-            tools: [{ googleSearch: {} }],
-            // When using search grounding, avoid responseMimeType: "application/json" 
-            // to ensure citations/grounding metadata are handled correctly.
+            tools: [{ googleSearch: {} }]
           }
         });
         
@@ -74,7 +77,7 @@ export default async function handler(req: any, res: any) {
       case 'generateTechnicalQuestions': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate 5 technical MCQs for a "${payload.role}" role. Skills: ${payload.skills.join(", ")}. Output ONLY a JSON array.`,
+          contents: `Generate 5 technical MCQs for "${payload.role}". Skills: ${payload.skills.join(", ")}.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -97,8 +100,9 @@ export default async function handler(req: any, res: any) {
       case 'generateCodingChallenge': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Generate a coding challenge for a "${payload.role}". Skills: ${payload.skills.join(", ")}. JD Context: ${payload.targetJD}. Output ONLY valid JSON.`,
+          contents: `Generate a coding challenge for: "${payload.role}". Skills: ${payload.skills.join(", ")}. JD: ${payload.targetJD}.`,
           config: {
+            thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
@@ -118,10 +122,9 @@ export default async function handler(req: any, res: any) {
       case 'evaluateCode': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate this code solution for the task: "${payload.question}". 
-          Code: \n${payload.code}
-          Evaluate for score (0-100), feedback, complexity, and whether it passed logical tests.`,
+          contents: `Evaluate code for: "${payload.question}". Code: \n${payload.code}`,
           config: {
+            thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
@@ -141,10 +144,7 @@ export default async function handler(req: any, res: any) {
       case 'getNextInterviewQuestion': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `You are an AI Recruiter. 
-          Role: ${payload.role}
-          Transcript: \n${payload.transcript.join('\n')}
-          Generate the next interview question. Keep it professional.`,
+          contents: `AI Recruiter. Role: ${payload.role}. History: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -160,7 +160,7 @@ export default async function handler(req: any, res: any) {
       case 'evaluateInterview': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate this interview transcript for clarity, confidence, and sentiment. Transcript: \n${payload.transcript.join('\n')}`,
+          contents: `Evaluate transcript: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -181,9 +181,7 @@ export default async function handler(req: any, res: any) {
       case 'calculateJRI': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Evaluate this candidate profile for Job Readiness Index (JRI): ${JSON.stringify(payload.data)}. 
-          Include current 2025 market demand levels in your reasoning.
-          Output a JSON object with properties: overallScore, verdict (SELECTED, HIGHLY_RECOMMENDED, or NEEDS_GROWTH), decisionSummary, resumeQuality, technicalProficiency, communicationLevel, ethicalBehavior, and improvements (array of objects).`,
+          contents: `Calculate JRI for: ${JSON.stringify(payload.data)}. Use 2025 market context.`,
           config: {
             tools: [{ googleSearch: {} }]
           }
@@ -198,11 +196,10 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error: any) {
-    console.error('Gemini API Error details:', error);
-    // Return the error message to help debug in the frontend console
+    console.error('Gemini API Error:', error);
     return res.status(500).json({ 
-      error: 'Backend request failed', 
-      details: error.message || 'Unknown server error'
+      error: 'Internal Server Error', 
+      message: error.message 
     });
   }
 }
