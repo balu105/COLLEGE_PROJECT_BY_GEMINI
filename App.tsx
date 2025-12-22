@@ -5,15 +5,15 @@ import { dbService } from './services/dbService';
 import Layout from './components/Layout';
 import Landing from './components/Landing';
 import Auth from './components/Auth';
-import StudentProfile from './components/StudentProfile';
-import ResumeAnalyzer from './components/ResumeAnalyzer';
-import RoleSelection from './components/RoleSelection';
-import CodingAssessment from './components/CodingAssessment';
-import AIInterviewRoom from './components/AIInterviewRoom';
-import JRIReport from './components/JRIReport';
-import AdminDashboard from './components/AdminDashboard';
-import StudentDashboard from './components/StudentDashboard';
-import AdminProfile from './components/AdminProfile';
+import StudentProfile from './components/StudentPortal/StudentProfile';
+import ResumeAnalyzer from './components/StudentPortal/ResumeAnalyzer';
+import RoleSelection from './components/StudentPortal/RoleSelection';
+import CodingAssessment from './components/StudentPortal/CodingAssessment';
+import AIInterviewRoom from './components/StudentPortal/AIInterviewRoom';
+import JRIReport from './components/StudentPortal/JRIReport';
+import AdminDashboard from './components/AdminPortal/AdminDashboard';
+import StudentDashboard from './components/StudentPortal/StudentDashboard';
+import AdminProfile from './components/AdminPortal/AdminProfile';
 
 interface ExtendedAppState extends AppState {
   isAdminAuthenticated: boolean;
@@ -53,7 +53,6 @@ const App: React.FC = () => {
       let profile = await dbService.getProfile(userId);
       
       if (!profile) {
-        // Fallback or guest profile
         const newProfile: CandidateProfile = {
           name: 'New Candidate',
           email: '',
