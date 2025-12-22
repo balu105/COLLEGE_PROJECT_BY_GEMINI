@@ -1,20 +1,43 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
+// Helper to clean and parse JSON from AI response
+const safeJsonParse = (text: string | undefined) => {
+  if (!text) return {};
+  try {
+    // Remove markdown code blocks if the model included them
+    const cleaned = text.replace(/```json\n?|```/g, '').trim();
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error("JSON Parse Error. Text received:", text);
+    // Return a structured error or empty object instead of crashing
+    return { error: "Failed to parse model response as JSON", raw: text };
+  }
+};
+
 export default async function handler(req: any, res: any) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { action, payload } = req.body;
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
+  // 1. Validate API Key Presence
+  if (!process.env.API_KEY) {
+    console.error("CRITICAL: API_KEY is not defined in environment variables.");
+    return res.status(500).json({ 
+      error: 'API configuration error: Gemini API Key is missing. Please add API_KEY to your environment variables.' 
+    });
+  }
 
   try {
+    const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+
     switch (action) {
       case 'generateJobDescription': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate a concise, professional job description for the role: "${payload.role}". Focus on key technical responsibilities.`,
+          contents: `Generate a concise, professional job description for the role: "${payload.role}". Focus on key technical responsibilities. Output ONLY valid JSON.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -24,32 +47,26 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '{}'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'analyzeResume': {
+        // Use flash model for search grounding as per guidelines example
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
+          model: "gemini-3-flash-preview",
           contents: `Retrieve current 2025 industry standards for a "${payload.targetRole}" position. 
-          Analyze this resume against those retrieved standards and this specific JD: ${payload.targetJD}. 
-          Resume: ${payload.resumeText}`,
+          Analyze this resume against those standards and this specific JD: ${payload.targetJD}. 
+          Resume: ${payload.resumeText}
+          Output the analysis as a JSON object with properties: name, skills (array), resumeScore (number 0-100), and resumeFeedback (string).`,
           config: {
             tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                name: { type: Type.STRING },
-                skills: { type: Type.ARRAY, items: { type: Type.STRING } },
-                resumeScore: { type: Type.NUMBER },
-                resumeFeedback: { type: Type.STRING }
-              },
-              required: ["name", "skills", "resumeScore", "resumeFeedback"]
-            }
+            // When using search grounding, avoid responseMimeType: "application/json" 
+            // to ensure citations/grounding metadata are handled correctly.
           }
         });
+        
         return res.status(200).json({
-          ...JSON.parse(response.text || '{}'),
+          ...safeJsonParse(response.text),
           groundingSources: extractGrounding(response)
         });
       }
@@ -57,7 +74,7 @@ export default async function handler(req: any, res: any) {
       case 'generateTechnicalQuestions': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate 5 technical MCQs for a "${payload.role}" role. Skills: ${payload.skills.join(", ")}.`,
+          contents: `Generate 5 technical MCQs for a "${payload.role}" role. Skills: ${payload.skills.join(", ")}. Output ONLY a JSON array.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -74,13 +91,13 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '[]'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'generateCodingChallenge': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Generate a coding challenge for a "${payload.role}". Skills: ${payload.skills.join(", ")}. JD Context: ${payload.targetJD}`,
+          contents: `Generate a coding challenge for a "${payload.role}". Skills: ${payload.skills.join(", ")}. JD Context: ${payload.targetJD}. Output ONLY valid JSON.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -95,13 +112,15 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '{}'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'evaluateCode': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate this solution for: "${payload.question}". Code: \n${payload.code}`,
+          contents: `Evaluate this code solution for the task: "${payload.question}". 
+          Code: \n${payload.code}
+          Evaluate for score (0-100), feedback, complexity, and whether it passed logical tests.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -116,13 +135,16 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '{}'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'getNextInterviewQuestion': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `You are an AI Recruiter. Current Transcript: \n${payload.transcript.join('\n')}\nGenerate the next insightful interview question for a "${payload.role}" position. Keep it conversational but professional.`,
+          contents: `You are an AI Recruiter. 
+          Role: ${payload.role}
+          Transcript: \n${payload.transcript.join('\n')}
+          Generate the next interview question. Keep it professional.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -132,7 +154,7 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '{}'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'evaluateInterview': {
@@ -153,48 +175,21 @@ export default async function handler(req: any, res: any) {
             }
           }
         });
-        return res.status(200).json(JSON.parse(response.text || '{}'));
+        return res.status(200).json(safeJsonParse(response.text));
       }
 
       case 'calculateJRI': {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `As a Hiring Board, evaluate this candidate: ${JSON.stringify(payload.data)}. 
-          Retrieve the latest salary range and demand levels for this role to include in the summary.`,
+          model: "gemini-3-flash-preview",
+          contents: `Evaluate this candidate profile for Job Readiness Index (JRI): ${JSON.stringify(payload.data)}. 
+          Include current 2025 market demand levels in your reasoning.
+          Output a JSON object with properties: overallScore, verdict (SELECTED, HIGHLY_RECOMMENDED, or NEEDS_GROWTH), decisionSummary, resumeQuality, technicalProficiency, communicationLevel, ethicalBehavior, and improvements (array of objects).`,
           config: {
-            tools: [{ googleSearch: {} }],
-            responseMimeType: "application/json",
-            responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                overallScore: { type: Type.NUMBER },
-                verdict: { type: Type.STRING },
-                decisionSummary: { type: Type.STRING },
-                resumeQuality: { type: Type.NUMBER },
-                technicalProficiency: { type: Type.NUMBER },
-                communicationLevel: { type: Type.NUMBER },
-                ethicalBehavior: { type: Type.NUMBER },
-                improvements: {
-                  type: Type.ARRAY,
-                  items: {
-                    type: Type.OBJECT,
-                    properties: {
-                      domain: { type: Type.STRING },
-                      score: { type: Type.NUMBER },
-                      gap: { type: Type.STRING },
-                      actionPlan: { type: Type.ARRAY, items: { type: Type.STRING } },
-                      suggestedResources: { type: Type.ARRAY, items: { type: Type.STRING } }
-                    },
-                    required: ["domain", "score", "gap", "actionPlan", "suggestedResources"]
-                  }
-                }
-              },
-              required: ["overallScore", "verdict", "decisionSummary", "resumeQuality", "technicalProficiency", "communicationLevel", "ethicalBehavior", "improvements"]
-            }
+            tools: [{ googleSearch: {} }]
           }
         });
         return res.status(200).json({
-          ...JSON.parse(response.text || '{}'),
+          ...safeJsonParse(response.text),
           groundingSources: extractGrounding(response)
         });
       }
@@ -203,16 +198,26 @@ export default async function handler(req: any, res: any) {
         return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error: any) {
-    console.error('Gemini API Error:', error);
-    return res.status(500).json({ error: error.message || 'Internal Server Error' });
+    console.error('Gemini API Error details:', error);
+    // Return the error message to help debug in the frontend console
+    return res.status(500).json({ 
+      error: 'Backend request failed', 
+      details: error.message || 'Unknown server error'
+    });
   }
 }
 
 function extractGrounding(response: any) {
-  const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-  if (!chunks) return [];
-  return chunks.map((chunk: any) => ({
-    title: chunk.web?.title || 'External Source',
-    uri: chunk.web?.uri
-  })).filter((s: any) => s.uri);
+  try {
+    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
+    if (!chunks) return [];
+    return chunks
+      .map((chunk: any) => ({
+        title: chunk.web?.title || 'External Source',
+        uri: chunk.web?.uri
+      }))
+      .filter((s: any) => s.uri);
+  } catch (e) {
+    return [];
+  }
 }
