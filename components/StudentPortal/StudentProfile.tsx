@@ -32,6 +32,21 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
     setTimeout(() => setIsSaved(false), 3000);
   };
 
+  const fillDemoData = () => {
+    const demoProfile: CandidateProfile = {
+      ...profile,
+      name: 'Alex Rivera',
+      university: 'Stanford University',
+      experience: 'Passionate full-stack developer with 3 years of experience in React and Node.js. Focused on building scalable cloud-native applications.',
+      skills: ['React', 'TypeScript', 'Tailwind CSS', 'Node.js', 'PostgreSQL', 'AWS'],
+      education: [{ school: 'Stanford', degree: 'B.S. Computer Science', year: '2019-2023' }],
+      workExperience: [{ company: 'TechFlow', role: 'Frontend Engineer', duration: '2023-Present', description: 'Led the migration to React 19 and improved Lighthouse scores by 40%.' }],
+      projects: [{ title: 'HireAI', description: 'An AI-powered recruitment ecosystem.', link: 'https://hireai.io' }],
+      certificates: ['AWS Certified Solutions Architect']
+    };
+    setProfile(demoProfile);
+  };
+
   const updateField = (field: keyof CandidateProfile, value: any) => {
     setProfile(prev => ({ ...prev, [field]: value }));
   };
@@ -48,20 +63,23 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
   };
 
   const addItem = (field: 'education' | 'workExperience' | 'projects' | 'certificates', emptyItem: any) => {
-    const current = [...(profile[field] as any[])];
+    const current = Array.isArray(profile[field]) ? [...(profile[field] as any[])] : [];
     updateField(field, [...current, emptyItem]);
   };
 
   const removeItem = (field: 'education' | 'workExperience' | 'projects' | 'certificates' | 'skills', index: number) => {
-    const current = [...(profile[field] as any[])];
-    current.splice(index, 1);
-    updateField(field, current);
+    const current = Array.isArray(profile[field]) ? [...(profile[field] as any[])] : [];
+    if (index >= 0 && index < current.length) {
+      current.splice(index, 1);
+      updateField(field, current);
+    }
   };
 
   const addSkill = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && newSkill.trim()) {
-      if (!profile.skills.includes(newSkill.trim())) {
-        updateField('skills', [...profile.skills, newSkill.trim()]);
+      const skills = Array.isArray(profile.skills) ? profile.skills : [];
+      if (!skills.includes(newSkill.trim())) {
+        updateField('skills', [...skills, newSkill.trim()]);
       }
       setNewSkill('');
     }
@@ -85,6 +103,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
       )}
     </div>
   );
+
+  const safeSkills = Array.isArray(profile.skills) ? profile.skills : [];
+  const safeEdu = Array.isArray(profile.education) ? profile.education : [];
+  const safeExp = Array.isArray(profile.workExperience) ? profile.workExperience : [];
 
   return (
     <div className="max-w-6xl mx-auto space-y-10 animate-page-entry pb-32">
@@ -132,7 +154,14 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
             </div>
 
             <div className="space-y-2">
-              <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Professional Bio</label>
+              <div className="flex items-center justify-between">
+                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Professional Bio</label>
+                {isEditing && (
+                   <button onClick={fillDemoData} className="text-[9px] font-black text-indigo-500 uppercase tracking-widest hover:underline flex items-center">
+                     <i className="fas fa-magic mr-1"></i> Auto-Fill Demo Data
+                   </button>
+                )}
+              </div>
               {isEditing ? (
                 <textarea value={profile.experience} onChange={(e) => updateField('experience', e.target.value)} placeholder="Tell recruiters about your background..." className="w-full bg-slate-50 p-4 rounded-2xl border border-slate-200 outline-none text-slate-700 font-medium" rows={3} />
               ) : (
@@ -182,7 +211,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
                 </div>
               )}
               <div className="flex flex-wrap gap-2">
-                {profile.skills.length > 0 ? profile.skills.map((skill, i) => (
+                {safeSkills.length > 0 ? safeSkills.map((skill, i) => (
                   <span key={i} className="px-3 py-1.5 bg-indigo-50 border border-indigo-100 rounded-lg text-xs font-black text-indigo-700 flex items-center space-x-2 animate-in zoom-in-95">
                     <span>{skill}</span>
                     {isEditing && <button onClick={() => removeItem('skills', i)} className="hover:text-rose-500 transition-colors"><i className="fas fa-times"></i></button>}
@@ -195,12 +224,12 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
           <div className="bg-white p-8 rounded-[3rem] border border-slate-200 shadow-sm space-y-6">
             <SectionHeader title="Academic Path" icon="fa-graduation-cap" color="blue" onAdd={() => addItem('education', { school: '', degree: '', year: '' })} />
             <div className="space-y-8">
-              {profile.education.length > 0 ? profile.education.map((edu, i) => (
+              {safeEdu.length > 0 ? safeEdu.map((edu, i) => (
                 <div key={i} className="space-y-3 relative group/item">
                   {isEditing && <button onClick={() => removeItem('education', i)} className="absolute -right-2 -top-2 w-6 h-6 bg-rose-50 text-rose-500 rounded-full flex items-center justify-center opacity-0 group-hover/item:opacity-100 transition-opacity"><i className="fas fa-trash text-[10px]"></i></button>}
-                  <input disabled={!isEditing} className={`w-full font-black text-slate-900 bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Degree Name" value={edu.degree} onChange={(e) => { const updated = [...profile.education]; updated[i].degree = e.target.value; updateField('education', updated); }} />
-                  <input disabled={!isEditing} className={`w-full text-xs text-slate-500 font-bold bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Institution Name" value={edu.school} onChange={(e) => { const updated = [...profile.education]; updated[i].school = e.target.value; updateField('education', updated); }} />
-                  <input disabled={!isEditing} className={`w-full text-[10px] text-indigo-600 font-black uppercase tracking-widest bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Timeline" value={edu.year} onChange={(e) => { const updated = [...profile.education]; updated[i].year = e.target.value; updateField('education', updated); }} />
+                  <input disabled={!isEditing} className={`w-full font-black text-slate-900 bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Degree Name" value={edu.degree} onChange={(e) => { const updated = [...safeEdu]; updated[i].degree = e.target.value; updateField('education', updated); }} />
+                  <input disabled={!isEditing} className={`w-full text-xs text-slate-500 font-bold bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Institution Name" value={edu.school} onChange={(e) => { const updated = [...safeEdu]; updated[i].school = e.target.value; updateField('education', updated); }} />
+                  <input disabled={!isEditing} className={`w-full text-[10px] text-indigo-600 font-black uppercase tracking-widest bg-transparent border-none p-0 focus:ring-0 ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Timeline" value={edu.year} onChange={(e) => { const updated = [...safeEdu]; updated[i].year = e.target.value; updateField('education', updated); }} />
                 </div>
               )) : <p className="text-xs text-slate-400 italic">No academic history provided.</p>}
             </div>
@@ -211,18 +240,18 @@ const StudentProfile: React.FC<StudentProfileProps> = ({ onSave, user }) => {
           <div className="bg-white p-10 rounded-[3.5rem] border border-slate-200 shadow-sm space-y-10">
             <SectionHeader title="Career Milestones" icon="fa-briefcase" color="purple" onAdd={() => addItem('workExperience', { company: '', role: '', duration: '', description: '' })} />
             <div className="space-y-12 relative">
-              {profile.workExperience.length > 0 && <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-100"></div>}
-              {profile.workExperience.length > 0 ? profile.workExperience.map((exp, i) => (
+              {safeExp.length > 0 && <div className="absolute left-6 top-0 bottom-0 w-px bg-slate-100"></div>}
+              {safeExp.length > 0 ? safeExp.map((exp, i) => (
                 <div key={i} className="relative pl-14 group/exp">
                   <div className="absolute left-4 top-2 w-4 h-4 rounded-full bg-white border-4 border-purple-500 group-hover/exp:scale-125 transition-transform z-10"></div>
                   {isEditing && <button onClick={() => removeItem('workExperience', i)} className="absolute right-0 top-0 text-slate-300 hover:text-rose-500 transition-colors"><i className="fas fa-trash-alt text-sm"></i></button>}
                   <div className="space-y-4">
                     <div className="flex flex-col md:flex-row md:items-center justify-between gap-2">
-                      <input disabled={!isEditing} className={`text-xl font-black text-slate-900 bg-transparent border-none p-0 focus:ring-0 w-full md:w-auto ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Job Title" value={exp.role} onChange={(e) => { const updated = [...profile.workExperience]; updated[i].role = e.target.value; updateField('workExperience', updated); }} />
-                      <input disabled={!isEditing} className={`text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 focus:ring-0 w-full md:w-auto ${!isEditing ? 'cursor-default' : ''}`} placeholder="Timeline" value={exp.duration} onChange={(e) => { const updated = [...profile.workExperience]; updated[i].duration = e.target.value; updateField('workExperience', updated); }} />
+                      <input disabled={!isEditing} className={`text-xl font-black text-slate-900 bg-transparent border-none p-0 focus:ring-0 w-full md:w-auto ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Job Title" value={exp.role} onChange={(e) => { const updated = [...safeExp]; updated[i].role = e.target.value; updateField('workExperience', updated); }} />
+                      <input disabled={!isEditing} className={`text-[10px] font-black text-slate-400 uppercase tracking-widest bg-slate-50 px-3 py-1 rounded-lg border border-slate-100 focus:ring-0 w-full md:w-auto ${!isEditing ? 'cursor-default' : ''}`} placeholder="Timeline" value={exp.duration} onChange={(e) => { const updated = [...safeExp]; updated[i].duration = e.target.value; updateField('workExperience', updated); }} />
                     </div>
-                    <input disabled={!isEditing} className={`text-sm font-black text-purple-600 uppercase tracking-widest bg-transparent border-none p-0 focus:ring-0 w-full ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Company Name" value={exp.company} onChange={(e) => { const updated = [...profile.workExperience]; updated[i].company = e.target.value; updateField('workExperience', updated); }} />
-                    <textarea disabled={!isEditing} className={`w-full text-sm text-slate-500 font-medium leading-relaxed bg-transparent border-none p-0 focus:ring-0 resize-none ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Impact and responsibilities..." rows={2} value={exp.description} onChange={(e) => { const updated = [...profile.workExperience]; updated[i].description = e.target.value; updateField('workExperience', updated); }} />
+                    <input disabled={!isEditing} className={`text-sm font-black text-purple-600 uppercase tracking-widest bg-transparent border-none p-0 focus:ring-0 w-full ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Company Name" value={exp.company} onChange={(e) => { const updated = [...safeExp]; updated[i].company = e.target.value; updateField('workExperience', updated); }} />
+                    <textarea disabled={!isEditing} className={`w-full text-sm text-slate-500 font-medium leading-relaxed bg-transparent border-none p-0 focus:ring-0 resize-none ${!isEditing ? 'cursor-default' : 'hover:bg-slate-50 rounded px-1'}`} placeholder="Impact and responsibilities..." rows={2} value={exp.description} onChange={(e) => { const updated = [...safeExp]; updated[i].description = e.target.value; updateField('workExperience', updated); }} />
                   </div>
                 </div>
               )) : <div className="text-center py-10 opacity-40"><i className="fas fa-briefcase text-4xl mb-4 block"></i><p className="text-sm font-bold">No professional experience recorded.</p></div>}

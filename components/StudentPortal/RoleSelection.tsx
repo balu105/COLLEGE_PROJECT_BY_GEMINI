@@ -14,32 +14,32 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
 
   const roles = [
     { 
-      id: 'frontend', 
-      title: 'Frontend Architect', 
-      desc: 'Expertise in UI performance, accessibility, and modern React ecosystems.', 
-      icon: 'fa-paint-brush', 
-      color: 'indigo' 
+      id: 'java', 
+      title: 'Java Developer', 
+      desc: 'Focus on enterprise-grade applications, Spring Boot microservices, multithreading, and robust backend architecture.', 
+      icon: 'fa-mug-hot', 
+      color: 'rose' 
     },
     { 
-      id: 'backend', 
-      title: 'Backend Systems Engineer', 
-      desc: 'Focus on scalability, API design, distributed systems, and security.', 
-      icon: 'fa-server', 
+      id: 'python', 
+      title: 'Python Developer', 
+      desc: 'Expertise in scalable scripting, Django/Flask web frameworks, automation, and backend integration.', 
+      icon: 'fa-brands fa-python', 
       color: 'blue' 
     },
     { 
-      id: 'ai', 
-      title: 'AI/ML Solutions Engineer', 
-      desc: 'Integrating LLMs, prompt engineering, and data pipeline optimization.', 
-      icon: 'fa-brain-circuit', 
-      color: 'purple' 
+      id: 'data-analysis', 
+      title: 'Data Analysis', 
+      desc: 'Specializing in SQL-driven insights, data visualization, statistical modeling, and actionable business intelligence.', 
+      icon: 'fa-magnifying-glass-chart', 
+      color: 'emerald' 
     },
     { 
-      id: 'devops', 
-      title: 'Cloud & DevOps Specialist', 
-      desc: 'CI/CD automation, infrastructure as code, and site reliability.', 
-      icon: 'fa-cloud-binary', 
-      color: 'emerald' 
+      id: 'mern', 
+      title: 'MERN Stack Developer', 
+      desc: 'Full-stack mastery of MongoDB, Express, React, and Node.js for modern, high-performance web applications.', 
+      icon: 'fa-cubes', 
+      color: 'indigo' 
     }
   ];
 
@@ -68,7 +68,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
         <span className="px-4 py-1.5 bg-indigo-50 text-indigo-600 rounded-full text-[10px] font-black uppercase tracking-[0.25em]">Phase 01: Targeting</span>
         <h2 className="text-4xl font-black text-slate-900 tracking-tight">Select Your Career Path</h2>
         <p className="text-slate-500 font-medium max-w-xl mx-auto">
-          Choose a predefined industry role or define a custom target to calibrate your AI assessment.
+          Choose one of the core industry tracks or define a specialized target to calibrate your AI assessment.
         </p>
       </div>
 
@@ -93,7 +93,7 @@ const RoleSelection: React.FC<RoleSelectionProps> = ({ onSelect }) => {
                     </div>
                   </div>
                   <div className="mt-10 flex items-center space-x-2 text-indigo-600 font-black text-xs uppercase tracking-widest group-hover:translate-x-2 transition-transform">
-                    <span>Configure My Assessment</span>
+                    <span>Configure Assessment for {role.title}</span>
                     <i className="fas fa-arrow-right"></i>
                   </div>
                 </div>

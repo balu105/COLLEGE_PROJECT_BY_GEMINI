@@ -21,9 +21,10 @@ const TechnicalAssessment: React.FC<TechnicalAssessmentProps> = ({ role, skills,
     const fetchQuestions = async () => {
       try {
         const data = await generateTechnicalQuestions(role, skills);
-        setQuestions(data);
+        setQuestions(Array.isArray(data) ? data : []);
       } catch (err) {
         console.error(err);
+        setQuestions([]);
       } finally {
         setLoading(false);
       }
@@ -55,7 +56,7 @@ const TechnicalAssessment: React.FC<TechnicalAssessmentProps> = ({ role, skills,
     } else {
       let score = 0;
       answers.forEach((ans, i) => {
-        if (ans === questions[i].correctIndex) score++;
+        if (ans === questions[i]?.correctIndex) score++;
       });
       onComplete({
         score,
@@ -71,6 +72,17 @@ const TechnicalAssessment: React.FC<TechnicalAssessmentProps> = ({ role, skills,
       <div className="flex flex-col items-center justify-center py-20 space-y-4">
         <div className="w-16 h-16 border-4 border-indigo-200 border-t-indigo-600 rounded-full animate-spin"></div>
         <p className="text-slate-500 font-medium animate-pulse">Generating personalized test based on your skills...</p>
+      </div>
+    );
+  }
+
+  if (!questions || questions.length === 0) {
+    return (
+      <div className="max-w-2xl mx-auto bg-white rounded-3xl p-10 border border-slate-200 shadow-xl text-center space-y-4">
+        <i className="fas fa-exclamation-triangle text-amber-500 text-3xl"></i>
+        <h2 className="text-xl font-bold text-slate-800">Assessment Unavailable</h2>
+        <p className="text-slate-500">Could not generate questions. Please try again later.</p>
+        <button onClick={() => window.location.reload()} className="px-6 py-2 bg-indigo-600 text-white rounded-xl">Retry</button>
       </div>
     );
   }
@@ -130,10 +142,10 @@ const TechnicalAssessment: React.FC<TechnicalAssessmentProps> = ({ role, skills,
 
       <div className="bg-white rounded-3xl p-8 border border-slate-200 shadow-sm space-y-8">
         <h3 className="text-xl font-bold text-slate-800 leading-relaxed">
-          {q.question}
+          {q?.question || 'Loading question...'}
         </h3>
         <div className="grid grid-cols-1 gap-4">
-          {q.options.map((opt: string, idx: number) => (
+          {q?.options && q.options.map((opt: string, idx: number) => (
             <button
               key={idx}
               onClick={() => handleAnswer(idx)}

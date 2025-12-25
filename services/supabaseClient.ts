@@ -3,9 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 /**
  * SUPABASE CONNECTION DETAILS
- * 
- * URL: Derived from Project ID (apnwdwafkdhqtubgwrik)
- * Key: Provided via user credentials.
+ * Using credentials provided for project: apnwdwafkdhqtubgwrik
  */
 
 const supabaseUrl = 'https://apnwdwafkdhqtubgwrik.supabase.co';

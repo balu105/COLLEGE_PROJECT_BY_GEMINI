@@ -30,7 +30,7 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
     if (document.hidden && phase === InterviewState.ACTIVE) {
       violationsRef.current += 1;
       setViolations(violationsRef.current);
-      alert("Proctoring Alert: Tab switching detected. This activity is being logged.");
+      alert("Proctoring Alert: Tab switching detected. This activity is being logged in the session transcript.");
     }
   }, [phase]);
 
@@ -59,7 +59,7 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
       setPhase(InterviewState.ACTIVE);
       fetchNextQuestion();
     } catch (err) {
-      alert("Camera and Microphone access are required for the AI Interview.");
+      alert("Camera and Microphone access are required for the AI Interview session capture.");
     }
   };
 
@@ -71,6 +71,7 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
     transcriptHistoryRef.current.push(`USER: ${userMsg}`);
     setUserInput('');
 
+    // Limit interview to 8 turns for efficiency or end on command
     if (transcriptHistoryRef.current.length >= 8) {
       stopInterview();
     } else {
@@ -83,12 +84,20 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
     setIsSubmitting(true);
     
     try {
+      // Evaluate the raw transcript
       const result = await evaluateInterview(transcriptHistoryRef.current);
-      onComplete({
-        ...result,
-        transcript: transcriptHistoryRef.current,
-        integrityViolations: violationsRef.current
-      });
+      
+      // Package the detailed session record
+      const fullSessionRecord: InterviewEvaluation = {
+        clarity: result.clarity || 0,
+        confidence: result.confidence || 0,
+        sentiment: result.sentiment || 'Neutral',
+        feedback: result.feedback || 'Session concluded.',
+        transcript: transcriptHistoryRef.current, // NEW: Full persistent transcript
+        integrityViolations: violationsRef.current // NEW: Fraud detection logs
+      };
+
+      onComplete(fullSessionRecord);
     } catch (error) {
       console.error("Evaluation failed", error);
     } finally {
@@ -104,8 +113,15 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
             <i className="fas fa-video text-3xl"></i>
           </div>
           <div className="space-y-4">
-            <h2 className="text-3xl font-black text-slate-900 tracking-tight">AI Interview Session</h2>
-            <p className="text-slate-500 font-medium">This session uses computer vision and behavioral analysis to evaluate your suitability for the role.</p>
+            <h2 className="text-3xl font-black text-slate-900 tracking-tight">Interactive Assessment</h2>
+            <p className="text-slate-500 font-medium">This session is recorded. Full audio-to-text transcripts and behavioral logs will be stored in your proprietary vault.</p>
+          </div>
+          <div className="p-6 bg-slate-50 rounded-2xl border border-slate-100 flex items-center space-x-4">
+             <i className="fas fa-shield-check text-indigo-500 text-xl"></i>
+             <div className="text-left">
+                <p className="text-[10px] font-black text-slate-900 uppercase">Proctoring Active</p>
+                <p className="text-[9px] text-slate-400 font-bold uppercase tracking-widest">Biometric and tab-switch monitoring enabled</p>
+             </div>
           </div>
           <button onClick={startInterview} className="hireai-button-primary w-full py-5 text-lg">Initialize Secure Session</button>
         </div>
@@ -121,24 +137,27 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
           <div className="absolute top-6 left-6 flex space-x-2">
             <div className="bg-red-600 px-3 py-1.5 rounded-xl text-white text-[10px] font-black tracking-widest flex items-center">
               <span className="w-2 h-2 bg-white rounded-full mr-2 animate-pulse"></span>
-              PROCTORED STREAM
+              SESSION RECORDING
             </div>
-            {violations > 0 && <div className="bg-amber-500 px-3 py-1.5 rounded-xl text-white text-[10px] font-black tracking-widest uppercase">Anomaly Detected</div>}
+            {violations > 0 && <div className="bg-amber-500 px-3 py-1.5 rounded-xl text-white text-[10px] font-black tracking-widest uppercase">Anomaly Logged</div>}
           </div>
         </div>
         <div className="bg-indigo-900/5 p-6 rounded-[2rem] border border-indigo-100 flex-1">
-           <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest mb-3">Interview Insights</h4>
+           <div className="flex items-center justify-between mb-3">
+              <h4 className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Behavioral Intelligence</h4>
+              <i className="fas fa-fingerprint text-indigo-400"></i>
+           </div>
            <p className="text-xs text-slate-500 leading-relaxed">
-             The AI is evaluating your confidence, technical depth, and communication clarity. Answer naturally and maintain eye contact with the camera.
+             The engine is currently serializing your responses. Avoid switching windows or multitasking to ensure session integrity and maximum score.
            </p>
         </div>
       </div>
 
       <div className="bg-white rounded-[2.5rem] border border-slate-200 shadow-xl flex flex-col overflow-hidden">
         <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
-          <h3 className="font-black text-slate-900">AI Recruiter Board</h3>
+          <h3 className="font-black text-slate-900">Transcript Feed</h3>
           <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center">
-            <i className="fas fa-circle text-[6px] mr-2"></i> Connected
+            <i className="fas fa-circle text-[6px] mr-2"></i> Vault Connected
           </span>
         </div>
         
@@ -159,7 +178,7 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
               </div>
             </div>
           )}
-          {isSubmitting && <div className="text-center text-xs font-black text-indigo-600 animate-pulse uppercase tracking-widest mt-4">Generating Selection Verdict...</div>}
+          {isSubmitting && <div className="text-center text-xs font-black text-indigo-600 animate-pulse uppercase tracking-widest mt-4">Committing Session to Vault...</div>}
         </div>
 
         <div className="p-6 bg-slate-50 border-t border-slate-100">
@@ -169,7 +188,7 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
                 value={userInput}
                 onChange={(e) => setUserInput(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Type your response..."
+                placeholder="Submit response to AI Recruiter..."
                 disabled={isThinking || phase === InterviewState.COMPLETING}
                 className="w-full hireai-input pr-16 bg-white"
               />
@@ -183,10 +202,10 @@ const AIInterviewRoom: React.FC<AIInterviewRoomProps> = ({ onComplete, role = "S
            </div>
            <div className="mt-3 flex justify-between items-center px-1">
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                Progress: {Math.round((transcriptHistoryRef.current.length / 8) * 100)}%
+                Turns Captured: {Math.round((transcriptHistoryRef.current.length / 8) * 100)}%
               </p>
               <button onClick={stopInterview} className="text-[10px] font-black text-rose-500 uppercase tracking-widest hover:underline">
-                End Early
+                End & Commit
               </button>
            </div>
         </div>

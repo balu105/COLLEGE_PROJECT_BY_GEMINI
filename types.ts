@@ -44,6 +44,12 @@ export interface GroundingSource {
   uri: string;
 }
 
+export interface CodingSolution {
+  challengeTitle: string;
+  code: string;
+  topic: string;
+}
+
 export interface CandidateProfile {
   name: string;
   email: string;
@@ -62,12 +68,12 @@ export interface CandidateProfile {
   resumeFeedback?: string;
   resumeFileName?: string;
   resumeFileType?: string;
+  resumeContent?: string;
   isResumePassed?: boolean;
   isCodingPassed?: boolean;
   isInterviewPassed?: boolean;
-  // Deep result storage
-  technicalResult?: any;
-  interviewResult?: any;
+  technicalResult?: TechnicalScore | null;
+  interviewResult?: InterviewEvaluation | null;
   groundingSources?: GroundingSource[];
 }
 
@@ -76,13 +82,14 @@ export interface TechnicalScore {
   total: number;
   feedback: string;
   integrityViolations: number;
+  solutions: CodingSolution[]; // Stores the actual code session data
 }
 
 export interface InterviewEvaluation {
   clarity: number;
   confidence: number;
   sentiment: string;
-  transcript: string[];
+  transcript: string[]; // Stores the line-by-line conversation details
   feedback: string;
   integrityViolations: number;
 }

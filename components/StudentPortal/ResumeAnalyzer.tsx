@@ -49,8 +49,9 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ onAnalyzed, targetRole,
       const result = await analyzeResume(textToAnalyze, targetRole, targetJD);
       setAnalysisResult({
         ...result,
-        resumeFileName: file?.name,
-        resumeFileType: file?.type
+        resumeFileName: file?.name || 'pasted_resume.txt',
+        resumeFileType: file?.type || 'text/plain',
+        resumeContent: textToAnalyze // NEW: Store actual resume text
       });
     } catch (err) {
       setError('Analysis failed.');
@@ -68,6 +69,10 @@ const ResumeAnalyzer: React.FC<ResumeAnalyzerProps> = ({ onAnalyzed, targetRole,
             <h2 className="text-3xl font-black text-slate-900 tracking-tight">
               {isPassed ? 'Selection Verified' : 'Refinement Required'}
             </h2>
+            <div className="flex items-center justify-center space-x-2 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+               <i className="fas fa-cloud-check text-emerald-500"></i>
+               <span>Source Document Stored in Vault</span>
+            </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">

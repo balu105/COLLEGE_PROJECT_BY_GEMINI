@@ -1,21 +1,42 @@
 
 import { GoogleGenAI, Type } from "@google/genai";
 
-// Helper to safely clean and parse JSON from AI response
 const safeJsonParse = (text: string | undefined) => {
   if (!text) return {};
   try {
-    // Strip potential markdown JSON code blocks
-    const cleaned = text.replace(/```json\n?|```/g, '').trim();
+    let cleaned = text.replace(/```json\n?|```/g, '').trim();
+    
+    const firstBrace = cleaned.indexOf('{');
+    const firstBracket = cleaned.indexOf('[');
+    let start = -1;
+    if (firstBrace !== -1 && firstBracket !== -1) start = Math.min(firstBrace, firstBracket);
+    else if (firstBrace !== -1) start = firstBrace;
+    else if (firstBracket !== -1) start = firstBracket;
+
+    const lastBrace = cleaned.lastIndexOf('}');
+    const lastBracket = cleaned.lastIndexOf(']');
+    let end = -1;
+    if (lastBrace !== -1 && lastBracket !== -1) end = Math.max(lastBrace, lastBracket);
+    else if (lastBrace !== -1) end = lastBrace;
+    else if (lastBracket !== -1) end = lastBracket;
+
+    if (start !== -1 && end !== -1) {
+      cleaned = cleaned.substring(start, end + 1);
+    }
     return JSON.parse(cleaned);
   } catch (e) {
-    console.error("Gemini Response JSON Parse Error. Raw text:", text);
-    return { error: "Failed to parse model response", raw: text };
+    console.error("Gemini Backend JSON Parse Error:", e);
+    // Desperation fix for AI artifacts
+    try {
+       const desperate = text?.match(/[\{\[].*[\}\]]/s);
+       return desperate ? JSON.parse(desperate[0]) : { error: "Parse failure" };
+    } catch {
+       return { error: "Failed to parse model response", raw: text };
+    }
   }
 };
 
 export default async function handler(req: any, res: any) {
-  // CORS Preflight
   if (req.method === 'OPTIONS') {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -23,19 +44,14 @@ export default async function handler(req: any, res: any) {
     return res.status(200).end();
   }
 
-  // Enforce POST method for security
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
   const { action, payload } = req.body;
 
-  // Strict API Key Validation
   if (!process.env.API_KEY) {
-    console.error("CRITICAL: API_KEY is missing in process.env");
-    return res.status(500).json({ 
-      error: 'API_KEY is missing in the server environment.' 
-    });
+    return res.status(500).json({ error: 'API_KEY is missing on server.' });
   }
 
   try {
@@ -45,7 +61,7 @@ export default async function handler(req: any, res: any) {
       case 'generateJobDescription': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate a concise, professional job description for: "${payload.role}". Output ONLY valid JSON.`,
+          contents: `Generate a professional job description for: "${payload.role}". Output valid JSON only.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -61,34 +77,18 @@ export default async function handler(req: any, res: any) {
       case 'analyzeResume': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Analyze this resume for a "${payload.targetRole}" role. Resume: ${payload.resumeText}. Target JD: ${payload.targetJD}. Output JSON: { "name": string, "skills": string[], "resumeScore": number, "resumeFeedback": string }`,
-          config: {
-            tools: [{ googleSearch: {} }]
-          }
-        });
-        return res.status(200).json({
-          ...safeJsonParse(response.text),
-          groundingSources: extractGrounding(response)
-        });
-      }
-
-      case 'generateTechnicalQuestions': {
-        const response = await ai.models.generateContent({
-          model: "gemini-3-flash-preview",
-          contents: `Generate 5 technical MCQs for "${payload.role}". Skills: ${payload.skills.join(", ")}.`,
+          contents: `ATS Analysis for "${payload.targetRole}". Resume: ${payload.resumeText}. Target JD: ${payload.targetJD}. Output JSON strictly.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
-              type: Type.ARRAY,
-              items: {
-                type: Type.OBJECT,
-                properties: {
-                  question: { type: Type.STRING },
-                  options: { type: Type.ARRAY, items: { type: Type.STRING } },
-                  correctIndex: { type: Type.NUMBER }
-                },
-                required: ["question", "options", "correctIndex"]
-              }
+              type: Type.OBJECT,
+              properties: {
+                name: { type: Type.STRING },
+                skills: { type: Type.ARRAY, items: { type: Type.STRING } },
+                resumeScore: { type: Type.NUMBER },
+                resumeFeedback: { type: Type.STRING }
+              },
+              required: ["name", "skills", "resumeScore", "resumeFeedback"]
             }
           }
         });
@@ -98,19 +98,34 @@ export default async function handler(req: any, res: any) {
       case 'generateCodingChallenge': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Create a coding challenge for "${payload.role}". Skills: ${payload.skills.join(", ")}.`,
+          contents: `Generate 3 coding challenges for "${payload.role}". Use clean, real test cases. DO NOT use repetitive date/time filler.`,
           config: {
             thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
             responseSchema: {
-              type: Type.OBJECT,
-              properties: {
-                title: { type: Type.STRING },
-                description: { type: Type.STRING },
-                starterCode: { type: Type.STRING },
-                testCase: { type: Type.STRING }
-              },
-              required: ["title", "description", "starterCode", "testCase"]
+              type: Type.ARRAY,
+              items: {
+                type: Type.OBJECT,
+                properties: {
+                  title: { type: Type.STRING },
+                  description: { type: Type.STRING },
+                  starterCode: { type: Type.STRING },
+                  topic: { type: Type.STRING },
+                  difficulty: { type: Type.STRING },
+                  examples: {
+                    type: Type.ARRAY,
+                    items: {
+                      type: Type.OBJECT,
+                      properties: {
+                        input: { type: Type.STRING },
+                        output: { type: Type.STRING },
+                        explanation: { type: Type.STRING }
+                      }
+                    }
+                  }
+                },
+                required: ["title", "description", "starterCode", "topic", "difficulty", "examples"]
+              }
             }
           }
         });
@@ -120,7 +135,7 @@ export default async function handler(req: any, res: any) {
       case 'evaluateCode': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate code for "${payload.question}". Code: \n${payload.code}`,
+          contents: `Evaluate technical submissions: \n${JSON.stringify(payload.challenges.map((c: any, i: number) => ({ title: c.title, solution: payload.codes[i] })))}`,
           config: {
             thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
@@ -142,7 +157,7 @@ export default async function handler(req: any, res: any) {
       case 'getNextInterviewQuestion': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `AI Recruiter. Role: ${payload.role}. Transcript: \n${payload.transcript.join('\n')}`,
+          contents: `AI Interviewer for "${payload.role}". Transcript: \n${payload.transcript.join('\n')}.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -158,7 +173,7 @@ export default async function handler(req: any, res: any) {
       case 'evaluateInterview': {
         const response = await ai.models.generateContent({
           model: "gemini-3-pro-preview",
-          contents: `Evaluate interview: \n${payload.transcript.join('\n')}`,
+          contents: `Evaluate performance based on transcript: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -179,40 +194,17 @@ export default async function handler(req: any, res: any) {
       case 'calculateJRI': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Calculate Job Readiness Index for: ${JSON.stringify(payload.data)}. Use 2025 market trends.`,
-          config: {
-            tools: [{ googleSearch: {} }]
-          }
+          contents: `Calculate JRI. Data: ${JSON.stringify(payload.data)}. Ground with Search.`,
+          config: { tools: [{ googleSearch: {} }] }
         });
-        return res.status(200).json({
-          ...safeJsonParse(response.text),
-          groundingSources: extractGrounding(response)
-        });
+        return res.status(200).json({ text: response.text, metadata: response.candidates?.[0]?.groundingMetadata });
       }
 
       default:
         return res.status(400).json({ error: 'Invalid action' });
     }
   } catch (error: any) {
-    console.error('Gemini SDK Error:', error);
-    return res.status(500).json({ 
-      error: 'Backend request failed', 
-      details: error.message 
-    });
-  }
-}
-
-function extractGrounding(response: any) {
-  try {
-    const chunks = response.candidates?.[0]?.groundingMetadata?.groundingChunks;
-    if (!chunks) return [];
-    return chunks
-      .map((chunk: any) => ({
-        title: chunk.web?.title || 'External Source',
-        uri: chunk.web?.uri
-      }))
-      .filter((s: any) => s.uri);
-  } catch (e) {
-    return [];
+    console.error('Gemini Backend Error:', error);
+    return res.status(500).json({ error: 'Model execution failed', details: error.message });
   }
 }

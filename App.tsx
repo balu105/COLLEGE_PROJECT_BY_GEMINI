@@ -38,7 +38,16 @@ const App: React.FC = () => {
     const initAuth = async () => {
       const userId = dbService.getCurrentUserId();
       if (userId) {
-        await fetchAndSyncProfile(userId);
+        if (userId === 'admin_root') {
+          setState(prev => ({ 
+            ...prev, 
+            role: UserRole.ADMIN, 
+            isAdminAuthenticated: true, 
+            isLoading: false 
+          }));
+        } else {
+          await fetchAndSyncProfile(userId);
+        }
       } else {
         setState(prev => ({ ...prev, isLoading: false }));
       }
@@ -50,27 +59,7 @@ const App: React.FC = () => {
     setState(prev => ({ ...prev, isSyncing: true, isLoading: true }));
     
     try {
-      let profile = await dbService.getProfile(userId);
-      
-      if (!profile) {
-        const newProfile: CandidateProfile = {
-          name: 'New Candidate',
-          email: '',
-          university: '',
-          experience: '',
-          skills: [],
-          education: [],
-          workExperience: [],
-          projects: [],
-          certificates: [],
-          currentStage: AssessmentStage.PROCESS_GUIDE,
-          isResumePassed: false,
-          isCodingPassed: false,
-          isInterviewPassed: false
-        };
-        await dbService.saveProfile(userId, newProfile);
-        profile = newProfile;
-      }
+      const profile = await dbService.getProfile(userId);
       
       setState(prev => ({
         ...prev,
@@ -88,37 +77,49 @@ const App: React.FC = () => {
     }
   };
 
-  const handleUpdateProfile = async (updatedProfile: CandidateProfile) => {
+  /**
+   * Universal function to update the candidate's cloud-synced state.
+   * This handles coding results, interview transcripts, and profile changes.
+   */
+  const handleUpdateProfile = async (updatedFields: Partial<CandidateProfile>) => {
+    if (!state.user) return;
+    
+    setState(prev => ({ ...prev, isSyncing: true }));
+    
     const userId = dbService.getCurrentUserId();
-    if (!userId) return;
+    if (!userId) {
+      setState(prev => ({ ...prev, isSyncing: false }));
+      return;
+    }
 
-    setState(prev => ({ ...prev, isSyncing: true, user: updatedProfile }));
-    await dbService.saveProfile(userId, {
-      ...updatedProfile,
-      currentStage: state.assessmentStage,
-      technicalResult: state.technical,
-      interviewResult: state.interview
-    });
-    setState(prev => ({ ...prev, isSyncing: false }));
+    // Deep merge fields to ensure we never lose results (transcripts, code, etc)
+    const fullProfile: CandidateProfile = {
+      ...state.user,
+      ...updatedFields,
+      // Priority updates from state if not explicitly passed
+      technicalResult: updatedFields.technicalResult || state.user.technicalResult || state.technical,
+      interviewResult: updatedFields.interviewResult || state.user.interviewResult || state.interview,
+      currentStage: updatedFields.currentStage || state.assessmentStage
+    };
+
+    const success = await dbService.saveProfile(userId, fullProfile);
+    
+    setState(prev => ({ 
+      ...prev, 
+      user: fullProfile, 
+      isSyncing: false,
+      technical: fullProfile.technicalResult,
+      interview: fullProfile.interviewResult,
+      assessmentStage: fullProfile.currentStage || prev.assessmentStage
+    }));
+    
+    return success;
   };
 
-  const setStage = (stage: AssessmentStage) => {
-    if (state.role === UserRole.STUDENT) {
-      if (stage === AssessmentStage.TECHNICAL_CODING && !state.user?.isResumePassed) return;
-      if (stage === AssessmentStage.INTERVIEW && !state.user?.isCodingPassed) return;
-      if (stage === AssessmentStage.RESULTS && !state.user?.isInterviewPassed) return;
-    }
-    
+  const setStage = async (stage: AssessmentStage) => {
     setState(prev => ({ ...prev, assessmentStage: stage }));
-    
-    const userId = dbService.getCurrentUserId();
-    if (userId && state.user) {
-      dbService.saveProfile(userId, {
-        ...state.user,
-        currentStage: stage,
-        technicalResult: state.technical,
-        interviewResult: state.interview
-      });
+    if (state.user) {
+      await handleUpdateProfile({ currentStage: stage });
     }
   };
 
@@ -138,9 +139,19 @@ const App: React.FC = () => {
   };
 
   if (state.isLoading) return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-slate-50 space-y-6">
-      <div className="w-16 h-16 border-4 border-indigo-100 border-t-indigo-600 rounded-full animate-spin"></div>
-      <p className="font-black text-slate-900 tracking-tighter italic">Initializing HireAI Local Engine...</p>
+    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0f172a] space-y-8 text-white">
+      <div className="relative w-24 h-24">
+        <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-[2.5rem] rotate-45 scale-110"></div>
+        <div className="absolute inset-0 border-4 border-indigo-500 rounded-[2.5rem] border-t-transparent animate-spin"></div>
+        <i className="fas fa-terminal absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-indigo-400"></i>
+      </div>
+      <div className="text-center space-y-3">
+        <p className="font-black text-2xl tracking-tighter text-white">HireAI Pipeline</p>
+        <div className="flex items-center justify-center space-x-3">
+          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">Synchronizing Vault Integrity</p>
+        </div>
+      </div>
     </div>
   );
 
@@ -169,7 +180,10 @@ const App: React.FC = () => {
         role={state.role} 
         stage={AuthStage.LOGIN} 
         onToggle={() => {}}
-        onSuccess={() => setState(prev => ({ ...prev, isAdminAuthenticated: true }))}
+        onSuccess={() => {
+          dbService.setCurrentUserId('admin_root');
+          setState(prev => ({ ...prev, isAdminAuthenticated: true }));
+        }}
         onBack={() => setState(prev => ({ ...prev, role: UserRole.GUEST }))}
       />
     );
@@ -179,10 +193,10 @@ const App: React.FC = () => {
     switch (state.assessmentStage) {
       case AssessmentStage.PROCESS_GUIDE: return <StudentDashboard onStart={() => setStage(AssessmentStage.ROLE_SELECTION)} user={state.user} />;
       case AssessmentStage.PROFILE: return <StudentProfile onSave={handleUpdateProfile} user={state.user} />;
-      case AssessmentStage.ROLE_SELECTION: return <RoleSelection onSelect={(role, jd) => { handleUpdateProfile({ ...state.user!, selectedRole: role, targetJD: jd }); setStage(AssessmentStage.RESUME); }} />;
-      case AssessmentStage.RESUME: return <ResumeAnalyzer targetRole={state.user?.selectedRole} targetJD={state.user?.targetJD} onAnalyzed={(p) => { const passed = (p.resumeScore || 0) >= 70; handleUpdateProfile({ ...state.user!, ...p, isResumePassed: passed }); if (passed) setStage(AssessmentStage.TECHNICAL_CODING); }} />;
-      case AssessmentStage.TECHNICAL_CODING: return <CodingAssessment role={state.user?.selectedRole || 'Developer'} skills={state.user?.skills || []} targetJD={state.user?.targetJD} onComplete={(t) => { const passed = t.score >= 60; setState(prev => ({ ...prev, technical: t })); handleUpdateProfile({ ...state.user!, isCodingPassed: passed, technicalResult: t }); if (passed) setStage(AssessmentStage.INTERVIEW); }} />;
-      case AssessmentStage.INTERVIEW: return <AIInterviewRoom onComplete={(interview) => { setState(prev => ({ ...prev, interview })); handleUpdateProfile({ ...state.user!, isInterviewPassed: true, interviewResult: interview }); setStage(AssessmentStage.RESULTS); }} />;
+      case AssessmentStage.ROLE_SELECTION: return <RoleSelection onSelect={(role, jd) => { handleUpdateProfile({ selectedRole: role, targetJD: jd, currentStage: AssessmentStage.RESUME }); }} />;
+      case AssessmentStage.RESUME: return <ResumeAnalyzer targetRole={state.user?.selectedRole} targetJD={state.user?.targetJD} onAnalyzed={(p) => { const passed = (p.resumeScore || 0) >= 70; handleUpdateProfile({ ...p, isResumePassed: passed, currentStage: passed ? AssessmentStage.TECHNICAL_CODING : AssessmentStage.PROCESS_GUIDE }); }} />;
+      case AssessmentStage.TECHNICAL_CODING: return <CodingAssessment role={state.user?.selectedRole || 'Developer'} skills={state.user?.skills || []} targetJD={state.user?.targetJD} onComplete={(t) => { const passed = t.score >= 60; handleUpdateProfile({ isCodingPassed: passed, technicalResult: t, currentStage: passed ? AssessmentStage.INTERVIEW : AssessmentStage.PROCESS_GUIDE }); }} />;
+      case AssessmentStage.INTERVIEW: return <AIInterviewRoom role={state.user?.selectedRole} onComplete={(interview) => { handleUpdateProfile({ isInterviewPassed: true, interviewResult: interview, currentStage: AssessmentStage.RESULTS }); }} />;
       case AssessmentStage.RESULTS: return <JRIReport data={state} />;
       default: return null;
     }
@@ -194,6 +208,7 @@ const App: React.FC = () => {
       setStage={setStage} 
       user={state.user} 
       onLogout={handleSignOut}
+      isSyncing={state.isSyncing}
     >
       {state.role === UserRole.ADMIN ? (state.assessmentStage === AssessmentStage.PROFILE ? <AdminProfile /> : <AdminDashboard />) : renderAssessment()}
     </Layout>

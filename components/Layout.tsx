@@ -7,113 +7,143 @@ interface LayoutProps {
   currentStage: AssessmentStage;
   setStage: (stage: AssessmentStage) => void;
   user: CandidateProfile | null;
-  onLogout?: () => void;
+  onLogout: () => void;
+  isSyncing?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, currentStage, setStage, user, onLogout }) => {
-  const isAdmin = !user && (currentStage === AssessmentStage.RESULTS || currentStage === AssessmentStage.PROCESS_GUIDE || currentStage === AssessmentStage.PROFILE); 
+const Layout: React.FC<LayoutProps> = ({ children, currentStage, setStage, user, onLogout, isSyncing }) => {
+  const isAdmin = !user;
   const isProfileActive = currentStage === AssessmentStage.PROFILE;
 
-  const studentStages = [
-    { key: AssessmentStage.PROCESS_GUIDE, label: 'Dashboard', icon: 'fa-th-large', sub: 'Home Base', unlocked: true },
-    { key: AssessmentStage.ROLE_SELECTION, label: 'Targeting', icon: 'fa-crosshairs', sub: 'Role Selection', unlocked: true },
-    { key: AssessmentStage.RESUME, label: 'Resume Lab', icon: 'fa-file-signature', sub: 'Selection Gate', unlocked: !!user?.selectedRole },
-    { key: AssessmentStage.TECHNICAL_CODING, label: 'Skill Forge', icon: 'fa-microchip', sub: 'LeetCode Gate', unlocked: !!user?.isResumePassed },
-    { key: AssessmentStage.INTERVIEW, label: 'AI Interview', icon: 'fa-comment-dots', sub: 'Personality', unlocked: !!user?.isCodingPassed },
-    { key: AssessmentStage.RESULTS, label: 'Success Report', icon: 'fa-award', sub: 'Job Readiness', unlocked: !!user?.isInterviewPassed },
+  const navigation = [
+    { key: AssessmentStage.PROCESS_GUIDE, label: 'Dashboard', icon: 'fa-house', unlocked: true },
+    { key: AssessmentStage.ROLE_SELECTION, label: 'Paths', icon: 'fa-compass', unlocked: true },
+    { key: AssessmentStage.RESUME, label: 'Resume', icon: 'fa-file-shield', unlocked: !!user?.selectedRole },
+    { key: AssessmentStage.TECHNICAL_CODING, label: 'Forge', icon: 'fa-code-branch', unlocked: !!user?.isResumePassed },
+    { key: AssessmentStage.INTERVIEW, label: 'Interview', icon: 'fa-microphone-lines', unlocked: !!user?.isCodingPassed },
+    { key: AssessmentStage.RESULTS, label: 'Report', icon: 'fa-chart-simple', unlocked: !!user?.isInterviewPassed },
   ];
 
-  const adminStages = [
-    { key: AssessmentStage.RESULTS, label: 'Ecosystem Pulse', icon: 'fa-chart-network', sub: 'Global Intelligence', unlocked: true },
-    { key: AssessmentStage.PROCESS_GUIDE, label: 'Audit Streams', icon: 'fa-fingerprint', sub: 'System Logs', unlocked: true },
+  const adminNav = [
+    { key: AssessmentStage.RESULTS, label: 'Fleet', icon: 'fa-tower-broadcast', unlocked: true },
+    { key: AssessmentStage.PROCESS_GUIDE, label: 'Logs', icon: 'fa-list-check', unlocked: true },
   ];
 
-  const currentStages = isAdmin ? adminStages : studentStages;
+  const currentNav = isAdmin ? adminNav : navigation;
+  const progress = user?.isInterviewPassed ? 100 : user?.isCodingPassed ? 80 : user?.isResumePassed ? 50 : user?.selectedRole ? 25 : 5;
 
   return (
-    <div className="flex h-screen overflow-hidden">
-      <aside className="w-72 bg-slate-950 text-white flex flex-col shadow-2xl z-20">
-        <div className="p-8 border-b border-white/5">
-          <div className="flex items-center space-x-3">
-            <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isAdmin ? 'bg-emerald-600 shadow-emerald-500/20' : 'bg-indigo-600 shadow-indigo-500/20'}`}>
-              <i className={`fas ${isAdmin ? 'fa-shield-check' : 'fa-brain'} text-xl text-white`}></i>
+    <div className="min-h-screen bg-[#f8fafc] flex flex-col">
+      {/* Dynamic Top Navigation Bar */}
+      <header className="sticky top-0 z-50 bg-slate-950 text-white border-b border-white/5 shadow-2xl">
+        <div className="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
+          <div className="flex items-center gap-10">
+            {/* Logo Section */}
+            <div className="flex items-center gap-3 cursor-pointer group" onClick={() => setStage(AssessmentStage.PROCESS_GUIDE)}>
+              <div className="w-10 h-10 bg-gradient-to-tr from-slate-800 to-indigo-900 rounded-xl flex items-center justify-center shadow-lg border border-white/10 group-hover:scale-105 transition-transform">
+                <i className="fas fa-terminal text-sm text-indigo-400"></i>
+              </div>
+              <div className="hidden sm:flex flex-col">
+                <span className="font-black text-xl tracking-tighter leading-none">HireAI</span>
+                <span className="text-[9px] text-slate-500 font-black uppercase tracking-widest mt-1">
+                  {isAdmin ? 'System Kernel' : 'Proprietary Core'}
+                </span>
+              </div>
             </div>
-            <div className="flex flex-col">
-              <span className="text-xl font-black tracking-tighter">HireAI</span>
-              <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{isAdmin ? 'Admin' : 'Talent'}</span>
-            </div>
+
+            {/* Desktop Module Switcher */}
+            <nav className="hidden lg:flex items-center gap-1">
+              {currentNav.map((item) => {
+                const isActive = currentStage === item.key && !isProfileActive;
+                const isLocked = !item.unlocked && !isAdmin;
+                return (
+                  <button
+                    key={item.key}
+                    disabled={isLocked}
+                    onClick={() => setStage(item.key)}
+                    className={`
+                      flex items-center gap-2 px-4 py-2 rounded-xl transition-all relative
+                      ${isActive ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400 hover:text-white hover:bg-white/5'}
+                      ${isLocked ? 'opacity-20 grayscale cursor-not-allowed' : ''}
+                    `}
+                  >
+                    <i className={`fas ${isLocked ? 'fa-lock' : item.icon} text-[10px]`}></i>
+                    <span className="font-bold text-[11px] tracking-tight uppercase tracking-widest">{item.label}</span>
+                    {isActive && (
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 w-1 h-1 bg-white rounded-full"></span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
           </div>
-        </div>
-        
-        <nav className="flex-1 p-6 space-y-3 overflow-y-auto">
-          {currentStages.map((s) => {
-            const isActive = currentStage === s.key && !isProfileActive;
-            const isUnlocked = isAdmin || (s as any).unlocked;
-            return (
-              <button
-                key={s.key}
-                disabled={!isUnlocked}
-                onClick={() => setStage(s.key as AssessmentStage)}
-                className={`w-full flex items-center space-x-4 px-5 py-4 rounded-2xl transition-all ${
-                  isActive
-                    ? `${isAdmin ? 'bg-emerald-600/10 text-emerald-400' : 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20'}`
-                    : isUnlocked ? 'text-slate-400 hover:bg-white/5 hover:text-white' : 'text-slate-700 opacity-40 cursor-not-allowed'
-                }`}
+
+          <div className="flex items-center gap-4">
+            {/* Real-time Sync Status */}
+            <div className="hidden md:flex items-center gap-2 px-3 py-1.5 bg-white/5 rounded-lg border border-white/5">
+              <span className={`w-1.5 h-1.5 rounded-full ${isSyncing ? "bg-amber-500 animate-pulse" : "bg-emerald-500"}`}></span>
+              <span className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+                {isSyncing ? 'Syncing...' : 'Vault Locked'}
+              </span>
+            </div>
+
+            {/* User Identity Node */}
+            <div className="flex items-center gap-3 pl-4 border-l border-white/10">
+              <button 
+                onClick={() => setStage(AssessmentStage.PROFILE)}
+                className={`flex items-center gap-3 p-1.5 rounded-xl hover:bg-white/5 transition-all text-left group ${isProfileActive ? 'bg-white/5 ring-1 ring-white/10' : ''}`}
               >
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${
-                  isActive ? (isAdmin ? 'bg-emerald-500/20 text-emerald-400' : 'bg-white/20 text-white') : 'bg-slate-900'
-                }`}>
-                  <i className={`fas ${isUnlocked ? s.icon : 'fa-lock'} text-sm`}></i>
+                <div className="hidden sm:block text-right">
+                  <p className="text-xs font-black truncate leading-none mb-1 group-hover:text-indigo-400 transition-colors">
+                    {isAdmin ? 'System Root' : user?.name || 'Candidate'}
+                  </p>
+                  <p className="text-[9px] font-bold text-slate-500 truncate uppercase tracking-widest">Active Session</p>
                 </div>
-                <div className="flex flex-col items-start text-left">
-                  <span className="font-bold text-sm tracking-tight">{s.label}</span>
-                  <span className={`text-[9px] font-bold uppercase tracking-widest opacity-40 ${isActive ? 'opacity-100' : ''}`}>{s.sub}</span>
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0 border border-white/10 overflow-hidden shadow-lg group-hover:border-indigo-500 transition-colors">
+                  {user?.avatarUrl ? (
+                    <img src={user.avatarUrl} className="w-full h-full object-cover" alt="" />
+                  ) : (
+                    <span className="font-black text-slate-400 text-sm">{isAdmin ? 'A' : (user?.name || 'C').charAt(0)}</span>
+                  )}
                 </div>
               </button>
-            );
-          })}
-        </nav>
-
-        <div className="p-6 border-t border-white/5">
-          <button onClick={onLogout} className="w-full flex items-center space-x-3 px-5 py-3 rounded-xl text-slate-500 hover:text-rose-500 transition-all font-bold text-xs">
-            <i className="fas fa-sign-out-alt"></i>
-            <span>Log Out</span>
-          </button>
-        </div>
-      </aside>
-
-      <div className="flex-1 flex flex-col overflow-hidden">
-        <header className="h-20 bg-white/70 backdrop-blur-xl border-b border-slate-200/60 px-10 flex items-center justify-between sticky top-0">
-          <div className="flex items-center space-x-4">
-            <span className="text-slate-400 font-black text-xs uppercase tracking-widest">{isAdmin ? 'Admin' : 'Process'}</span>
-            <i className="fas fa-chevron-right text-[10px] text-slate-300"></i>
-            <span className="text-slate-900 font-black text-lg">
-              {isProfileActive ? 'My Profile' : currentStages.find((s) => s.key === currentStage)?.label}
-            </span>
-            <div className="h-6 w-px bg-slate-200 mx-4"></div>
-            <div className="flex items-center space-x-2 text-[10px] font-black text-emerald-500 uppercase tracking-widest">
-              <i className="fas fa-database"></i>
-              <span>Local Session</span>
+              
+              <button 
+                onClick={onLogout}
+                title="Secure Sign Out"
+                className="w-10 h-10 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-slate-400 hover:text-rose-500 hover:bg-rose-500/10 transition-all shadow-sm"
+              >
+                <i className="fas fa-power-off text-xs"></i>
+              </button>
             </div>
           </div>
+        </div>
 
-          <div className="flex items-center space-x-6">
-            <button onClick={() => setStage(AssessmentStage.PROFILE)} className={`flex items-center space-x-4 pl-2 p-1.5 rounded-2xl group ${isProfileActive ? 'bg-slate-100' : ''}`}>
-              <div className="text-right hidden sm:block">
-                <p className="text-sm font-black text-slate-900">{isAdmin ? 'Admin Root' : user?.name || 'Candidate'}</p>
-                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user?.university || 'Career Explorer'}</p>
-              </div>
-              <div className={`w-11 h-11 rounded-2xl flex items-center justify-center border-2 border-white shadow-lg ${isAdmin ? 'bg-slate-900' : 'bg-indigo-600'}`}>
-                {user?.avatarUrl ? <img src={user.avatarUrl} className="w-full h-full object-cover rounded-2xl" alt="" /> : <span className="text-white text-sm font-black">{isAdmin ? 'A' : (user?.name || 'C').charAt(0)}</span>}
-              </div>
-            </button>
+        {/* Global Progress Baseline */}
+        {!isAdmin && (
+          <div className="h-[2px] w-full bg-slate-900 overflow-hidden">
+            <div 
+              className="h-full bg-indigo-500 transition-all duration-1000 ease-out shadow-[0_0_10px_rgba(99,102,241,0.8)]" 
+              style={{ width: `${progress}%` }}
+            ></div>
           </div>
-        </header>
+        )}
+      </header>
 
-        <main className="flex-1 overflow-y-auto p-10 bg-slate-50/50">
-          <div className="max-w-7xl mx-auto">{children}</div>
-        </main>
-      </div>
+      {/* Main Experience Canvas */}
+      <main className="flex-1 overflow-y-auto p-6 md:p-12 custom-scrollbar">
+        <div className="max-w-7xl mx-auto">
+          {children}
+        </div>
+        
+        {/* Environment Metadata Footer */}
+        <footer className="py-12 text-center opacity-20 pointer-events-none select-none">
+          <div className="flex flex-col items-center gap-2">
+            <div className="w-8 h-[1px] bg-slate-400"></div>
+            <span className="text-[9px] font-black uppercase tracking-[0.6em] text-slate-400">Vertex Recruitment v4.0 • Node Synced</span>
+          </div>
+        </footer>
+      </main>
     </div>
   );
 };
