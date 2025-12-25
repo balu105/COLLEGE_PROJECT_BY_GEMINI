@@ -24,7 +24,6 @@ const initializeProfile = (profile: any, userId: string): CandidateProfile => {
     isCodingPassed: !!profile?.isCodingPassed,
     isInterviewPassed: !!profile?.isInterviewPassed,
     currentStage: profile?.currentStage || AssessmentStage.PROCESS_GUIDE,
-    // THE CRITICAL DATA BLOCKS
     technicalResult: profile?.technicalResult || null,
     interviewResult: profile?.interviewResult || null,
     resumeScore: profile?.resumeScore || 0,
@@ -57,21 +56,21 @@ export const dbService = {
     let profile: CandidateProfile | null = cached ? initializeProfile(JSON.parse(cached), userId) : null;
 
     try {
-      // Use maybeSingle() to avoid 406/404 errors when a record doesn't exist yet.
-      // This is the correct way to handle "get or create" logic in Supabase/PostgREST.
-      const { data, error, status } = await supabase
+      const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .maybeSingle();
+        .limit(1);
 
-      if (error && status !== 406) {
+      if (error) {
         console.warn('Supabase Fetch Warning:', error.message);
       }
 
-      if (data) {
-        const cloudBlob = data.data || {};
-        profile = initializeProfile({ ...cloudBlob, ...data }, userId);
+      const record = data && data.length > 0 ? data[0] : null;
+
+      if (record) {
+        const cloudBlob = record.data || {};
+        profile = initializeProfile({ ...cloudBlob, ...record }, userId);
         localStorage.setItem(`${USER_DATA_PREFIX}${userId}`, JSON.stringify(profile));
       }
     } catch (err) {

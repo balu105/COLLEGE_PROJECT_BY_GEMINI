@@ -58,11 +58,13 @@ const TechnicalAssessment: React.FC<TechnicalAssessmentProps> = ({ role, skills,
       answers.forEach((ans, i) => {
         if (ans === questions[i]?.correctIndex) score++;
       });
+      // Fix: Add empty solutions array to match TechnicalScore interface
       onComplete({
         score,
         total: questions.length,
         feedback: `Candidate completed technical assessment with ${score}/${questions.length} correct answers and ${violations} integrity violations.`,
-        integrityViolations: violations
+        integrityViolations: violations,
+        solutions: []
       });
     }
   };
