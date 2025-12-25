@@ -57,11 +57,12 @@ export const dbService = {
     let profile: CandidateProfile | null = cached ? initializeProfile(JSON.parse(cached), userId) : null;
 
     try {
+      // Use maybeSingle() instead of single() to avoid 406 errors when record is missing
       const { data, error } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', userId)
-        .single();
+        .maybeSingle();
 
       if (!error && data) {
         const cloudBlob = data.data || {};
