@@ -2,57 +2,215 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>HireAI | Private Recruitment Infrastructure</title>
     
     <!-- Design System Foundation -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
-    <!-- Instant Styling Engine -->
+    <!-- Tailwind Engine -->
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
-      tailwind.config = {
-        theme: {
-          extend: {
-            fontFamily: {
-              sans: ['Inter', 'sans-serif'],
-              display: ['Plus Jakarta Sans', 'sans-serif'],
-            },
-            colors: {
-              brand: {
-                indigo: '#4f46e5',
-                slate: '#0f172a',
-                emerald: '#10b981',
-                dark: '#020617',
-              }
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        brand: {
+                            indigo: '#5551ff',
+                            emerald: '#10b981',
+                            obsidian: '#020410',
+                            navy: '#0a0d1a',
+                        },
+                    },
+                    letterSpacing: {
+                        'widest-xl': '0.4em',
+                        'tight-xl': '-0.06em',
+                    },
+                    animation: {
+                        'spin-slow': 'spin 8s linear infinite',
+                        'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+                        'reveal': 'reveal 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards',
+                        'float': 'float 15s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        reveal: {
+                            '0%': { opacity: '0', transform: 'translateY(40px) scale(0.98)' },
+                            '100%': { opacity: '1', transform: 'translateY(0) scale(1)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translate(0, 0) scale(1)' },
+                            '50%': { transform: 'translate(40px, -60px) scale(1.05)' },
+                        }
+                    }
+                }
             }
-          }
         }
-      }
     </script>
-    
-    <link rel="stylesheet" href="./index.css">
-    
-    <script type="importmap">
-    {
-      "imports": {
-        "react": "https://esm.sh/react@^19.2.3",
-        "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
-        "react/": "https://esm.sh/react@^19.2.3/",
-        "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0",
-        "recharts": "https://esm.sh/recharts@^3.6.0",
-        "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
-        "vite": "https://esm.sh/vite@^7.3.0",
-        "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
-      }
-    }
-    </script>
+
+    <style type="text/css">
+        /* Master Neural CSS */
+        :root {
+            --brand-indigo: #5551ff;
+            --obsidian: #020410;
+        }
+
+        body {
+            background-color: var(--obsidian);
+            color: #94a3b8;
+            overflow-x: hidden;
+            width: 100vw;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Neural Atmosphere Layer */
+        .neural-bg {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            pointer-events: none;
+            overflow: hidden;
+            background-color: #020410;
+        }
+
+        .bg-grid-ambient {
+            position: absolute;
+            inset: 0;
+            opacity: 0.3;
+            background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, transparent 0);
+            background-size: 32px 32px;
+            mask-image: radial-gradient(circle at center, black, transparent 80%);
+        }
+
+        .glow-center {
+            position: absolute;
+            pointer-events: none;
+            border-radius: 9999px;
+            filter: blur(120px);
+            opacity: 0.1;
+            background: radial-gradient(circle, var(--brand-indigo) 0%, transparent 70%);
+        }
+
+        .scanline {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+            opacity: 0.02;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%), 
+                        linear-gradient(90deg, rgba(255, 0, 0, 0.02), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.02));
+            background-size: 100% 4px, 4px 100%;
+        }
+
+        /* Engineered Component Classes */
+        .hireai-card-solid {
+            background: rgba(10, 13, 26, 0.85);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 1.5rem;
+            backdrop-filter: blur(48px);
+            box-shadow: 0 40px 100px -20px rgba(0, 0, 0, 0.6);
+            transition: all 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        @media (min-width: 768px) {
+            .hireai-card-solid { border-radius: 2.5rem; }
+        }
+
+        .cta-primary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.25rem 2.5rem;
+            background: var(--brand-indigo);
+            color: white;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            border-radius: 1rem;
+            box-shadow: 0 10px 40px -10px rgba(85, 81, 255, 0.5);
+            transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+            cursor: pointer;
+            border: none;
+        }
+
+        .cta-primary:hover {
+            transform: translateY(-2px) scale(1.02);
+            box-shadow: 0 15px 50px -10px rgba(85, 81, 255, 0.6);
+        }
+
+        .cta-secondary {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 1rem;
+            padding: 1.25rem 2.5rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: white;
+            font-weight: 900;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.2em;
+            border-radius: 1rem;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .cta-secondary:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+        }
+
+        .badge-node {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 1.25rem;
+            background: rgba(85, 81, 255, 0.1);
+            border: 1px solid rgba(85, 81, 255, 0.2);
+            border-radius: 100px;
+            font-size: 0.55rem;
+            font-weight: 900;
+            color: #b8b6ff;
+            text-transform: uppercase;
+            letter-spacing: 0.3em;
+            backdrop-filter: blur(12px);
+            font-family: 'JetBrains Mono', monospace;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar { width: 4px; height: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.1); border-radius: 20px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--brand-indigo); }
+        
+        .scrollbar-hide::-webkit-scrollbar { display: none; }
+        .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<script type="importmap">
+{
+  "imports": {
+    "react": "https://esm.sh/react@^19.2.3",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.34.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.89.0",
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "vite": "https://esm.sh/vite@^7.3.0",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2"
+  }
+}
+</script>
 </head>
-<body class="bg-grid">
+<body>
     <div id="root"></div>
-    <script type="module" src="./index.tsx"></script>
+    <!-- Entry point script normalized to resolve relative to current origin -->
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>

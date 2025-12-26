@@ -1,6 +1,6 @@
-
 import React, { useState } from 'react';
 import { AuthStage, UserRole } from '../types';
+import Loading from './Loading';
 
 interface AuthProps {
   role: UserRole;
@@ -11,161 +11,158 @@ interface AuthProps {
 }
 
 const Auth: React.FC<AuthProps> = ({ role, stage, onToggle, onSuccess, onBack }) => {
-  const isAdmin = role === UserRole.ADMIN;
-  const [isLoading, setIsLoading] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [fullName, setFullName] = useState('');
-  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [handshakeStep, setHandshakeStep] = useState('');
+  
+  const isLogin = stage === AuthStage.LOGIN;
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
+  const performHandshake = async (id: string) => {
+    setIsProcessing(true);
+    const steps = [
+      'Establishing Secure Tunnel...',
+      'Verifying Identity Tokens...',
+      'Neural Handshake Synchronized.',
+      'Decrypting User Vault...'
+    ];
 
-    // Simulated network latency for cloud handshake
-    await new Promise(r => setTimeout(r, 1500));
-
-    try {
-      if (isAdmin) {
-        if (email === 'admin@hireai.io' && password === 'admin123') {
-          onSuccess('admin_root');
-        } else {
-          setError('Invalid Recruiter Credentials. Access Denied.');
-          setIsLoading(false);
-        }
-      } else {
-        // Create a unique deterministic ID from the email
-        const userId = btoa(email.toLowerCase()).substring(0, 16);
-        onSuccess(userId);
-      }
-    } catch (err: any) {
-      setError('Connection to auth server failed. Please try again.');
-      setIsLoading(false);
+    for (const step of steps) {
+      setHandshakeStep(step);
+      await new Promise(r => setTimeout(r, 600));
     }
+
+    onSuccess(id);
   };
 
-  const handleGoogleAuth = async () => {
-    setError(null);
-    setIsLoading(true);
-    
-    // Simulate real-world Google OAuth redirect and callback
-    await new Promise(r => setTimeout(r, 2000));
-    
-    const simulatedGoogleId = "goog_" + Math.random().toString(36).substring(2, 10);
-    onSuccess(simulatedGoogleId);
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email || !password) return;
+    // Generate a consistent ID from email for demo persistence
+    const userId = `u_${btoa(email).substring(0, 8).toLowerCase()}`;
+    performHandshake(userId);
+  };
+
+  const handleGoogleLogin = () => {
+    // Simulate Google Login popup logic
+    const googleId = `g_${Math.random().toString(36).substring(2, 10)}`;
+    performHandshake(googleId);
   };
 
   return (
-    <div className={`min-h-screen flex items-center justify-center p-6 relative overflow-hidden transition-all duration-700 ${isAdmin ? 'bg-[#0f172a]' : 'bg-[#f8fafc]'}`}>
-      {/* Background Decorative Elements */}
-      <div className={`absolute -top-24 -left-24 w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${isAdmin ? 'bg-emerald-500/10' : 'bg-indigo-500/10'}`}></div>
-      <div className={`absolute -bottom-24 -right-24 w-96 h-96 rounded-full blur-[100px] transition-colors duration-1000 ${isAdmin ? 'bg-indigo-500/5' : 'bg-purple-500/5'}`}></div>
+    <div className="min-h-screen bg-gradient-to-br from-[#f8f7ff] via-[#ffffff] to-[#fff0f5] flex flex-col items-center justify-center p-6 relative overflow-hidden font-sans">
+      {/* Soft Ambient Orbs */}
+      <div className="absolute top-[-10%] left-[-10%] w-[40rem] h-[40rem] bg-indigo-200/20 blur-[120px] rounded-full animate-float"></div>
+      <div className="absolute bottom-[-10%] right-[-10%] w-[35rem] h-[35rem] bg-rose-100/30 blur-[120px] rounded-full animate-float [animation-delay:2s]"></div>
 
-      {isLoading && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-white/60 backdrop-blur-md animate-in fade-in">
-          <div className="text-center space-y-8">
-            <div className="relative w-20 h-20 mx-auto">
-              <div className="absolute inset-0 border-4 border-indigo-600/10 rounded-[2rem] rotate-12"></div>
-              <div className="absolute inset-0 border-4 border-indigo-600 rounded-[2rem] border-t-transparent animate-spin"></div>
-              <i className="fas fa-shield-check absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-xl text-indigo-600"></i>
-            </div>
-            <div className="space-y-2">
-              <p className="text-slate-900 font-black text-lg tracking-tight">Authenticating...</p>
-              <p className="text-[10px] text-slate-400 font-black uppercase tracking-[0.3em]">Establishing Secure Handshake</p>
-            </div>
-          </div>
-        </div>
+      {/* Back navigation */}
+      {!isProcessing && (
+        <button 
+          onClick={onBack} 
+          className="absolute top-8 left-8 flex items-center gap-3 text-slate-400 hover:text-indigo-600 transition-all z-20 group"
+        >
+          <i className="fas fa-arrow-left text-[10px]"></i>
+          <span className="text-[10px] font-black uppercase tracking-widest">Back to Home</span>
+        </button>
       )}
 
-      <button 
-        onClick={onBack} 
-        disabled={isLoading}
-        className={`absolute top-10 left-10 font-bold flex items-center space-x-3 z-10 transition-colors ${isAdmin ? 'text-slate-500 hover:text-emerald-400' : 'text-slate-400 hover:text-indigo-600'}`}
-      >
-        <i className="fas fa-arrow-left text-xs"></i>
-        <span className="text-xs uppercase tracking-widest font-black">Back to Home</span>
-      </button>
+      <div className="w-full max-w-[500px] flex flex-col items-center animate-reveal relative z-10">
+        {/* Purple Robot Icon Hub */}
+        <div className="w-20 h-20 bg-[#5551ff] rounded-[2rem] flex items-center justify-center shadow-[0_15px_40px_rgba(85,81,255,0.3)] mb-8 transition-transform hover:rotate-6">
+          <i className="fas fa-robot text-white text-3xl"></i>
+        </div>
 
-      <div className="w-full max-w-md relative z-10 space-y-8 animate-in slide-in-from-bottom-4 duration-700">
-        <div className="text-center space-y-4">
-          <div className={`w-24 h-24 rounded-[2.5rem] flex items-center justify-center mx-auto shadow-2xl transition-all duration-700 ${isAdmin ? 'bg-emerald-600 shadow-emerald-500/20 rotate-12 scale-110' : 'bg-indigo-600 shadow-indigo-500/20'}`}>
-            <i className={`fas ${isAdmin ? 'fa-fingerprint' : 'fa-user-astronaut'} text-4xl text-white`}></i>
-          </div>
-          <div className="space-y-1">
-            <h2 className={`text-4xl font-black tracking-tighter ${isAdmin ? 'text-white' : 'text-slate-900'}`}>
-              {isAdmin ? 'System Root' : (stage === AuthStage.LOGIN ? 'Welcome Back' : 'Create Account')}
-            </h2>
-            <div className="flex items-center justify-center space-x-2">
-              <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${isAdmin ? 'bg-emerald-500' : 'bg-indigo-500'}`}></span>
-              <p className={`text-[10px] font-black uppercase tracking-[0.3em] ${isAdmin ? 'text-emerald-500/60' : 'text-indigo-400'}`}>
-                Cloud Pipeline Online
-              </p>
-            </div>
+        <div className="text-center mb-10">
+          <h1 className="text-[2.75rem] font-black text-[#0a0d1a] tracking-tight-xl leading-none mb-2">
+            {isLogin ? 'Welcome Back' : 'Join Infrastructure'}
+          </h1>
+          <div className="flex items-center justify-center gap-2 text-[9px] font-bold text-[#5551ff] uppercase tracking-[0.2em]">
+            <span className={`w-1.5 h-1.5 rounded-full bg-[#5551ff] ${isProcessing ? 'animate-ping' : 'animate-pulse'}`}></span>
+            {isProcessing ? 'Neural Synchronization in Progress' : 'Cloud Pipeline Online'}
           </div>
         </div>
 
-        <div className={`p-10 rounded-[3.5rem] border transition-all duration-700 ${isAdmin ? 'bg-slate-900/50 backdrop-blur-2xl border-white/5 shadow-2xl' : 'bg-white border-slate-100 shadow-xl'}`}>
-          <form className="space-y-6" onSubmit={handleSubmit}>
-            {error && (
-              <div className="p-4 bg-rose-50 border border-rose-100 text-rose-600 rounded-2xl text-[10px] font-black uppercase tracking-wider flex items-center space-x-3 animate-in shake-in">
-                <i className="fas fa-triangle-exclamation text-base"></i>
-                <span>{error}</span>
+        {/* The White Card Hub */}
+        <div className="bg-white rounded-[3.5rem] w-full p-12 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.06)] border border-white/40 backdrop-blur-sm relative overflow-hidden min-h-[500px] flex flex-col">
+          {isProcessing ? (
+            <div className="flex-1 flex flex-col items-center justify-center space-y-8 animate-reveal">
+              <div className="relative w-24 h-24">
+                <div className="absolute inset-0 border-4 border-indigo-100 rounded-[2.5rem]"></div>
+                <div className="absolute inset-0 border-4 border-indigo-500 rounded-[2.5rem] border-t-transparent animate-spin"></div>
+                <i className="fas fa-shield-halved absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-indigo-400"></i>
               </div>
-            )}
-            
-            <div className="space-y-5">
-              {stage === AuthStage.REGISTER && !isAdmin && (
-                <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Identity Display Name</label>
-                  <input type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} placeholder="e.g. Alex Rivera" className="hireai-input !rounded-2xl" required />
-                </div>
-              )}
-              <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${isAdmin ? 'text-slate-500' : 'text-slate-400'}`}>Cloud Identifier (Email)</label>
-                <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="id@hireai.io" className={`hireai-input !rounded-2xl ${isAdmin ? 'bg-white/5 border-white/10 text-white focus:border-emerald-500' : ''}`} required />
-              </div>
-              <div className="space-y-2">
-                <label className={`text-[10px] font-black uppercase tracking-widest ml-1 ${isAdmin ? 'text-slate-500' : 'text-slate-400'}`}>Secure Passphrase</label>
-                <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" className={`hireai-input !rounded-2xl ${isAdmin ? 'bg-white/5 border-white/10 text-white focus:border-emerald-500' : ''}`} required />
+              <div className="text-center space-y-2">
+                <p className="text-xs font-black text-slate-800 uppercase tracking-widest">{handshakeStep}</p>
+                <p className="text-[9px] font-bold text-slate-400 uppercase tracking-[0.4em]">Proprietary Verification Protocol</p>
               </div>
             </div>
-
-            <button type="submit" className={`w-full py-5 rounded-2xl font-black text-base shadow-2xl transition-all active:scale-95 ${isAdmin ? 'bg-emerald-600 text-white hover:bg-emerald-500 shadow-emerald-500/20' : 'bg-slate-900 text-white hover:bg-indigo-600 shadow-slate-900/20'}`}>
-              {isAdmin ? 'Unlock Operational Suite' : (stage === AuthStage.LOGIN ? 'Verify & Continue' : 'Initialize Talent Profile')}
-            </button>
-          </form>
-
-          {!isAdmin && (
+          ) : (
             <>
-              <div className="flex items-center my-10">
-                <div className="flex-1 h-px bg-slate-100"></div>
-                <span className="px-5 text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Social Identity Hub</span>
-                <div className="flex-1 h-px bg-slate-100"></div>
-              </div>
+              <form onSubmit={handleSubmit} className="space-y-8 animate-reveal">
+                <div className="space-y-6">
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Cloud Identifier (Email)
+                    </label>
+                    <input 
+                      type="email" 
+                      value={email} 
+                      onChange={e => setEmail(e.target.value)} 
+                      placeholder="id@hireai.io" 
+                      className="w-full bg-[#f4f7fb] border-none rounded-2xl px-8 py-5 text-[#0a0d1a] font-medium text-sm focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-300" 
+                      required 
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 gap-4">
-                <button 
-                  onClick={handleGoogleAuth}
-                  className="w-full py-4 bg-white border border-slate-200 rounded-2xl font-black text-[11px] text-slate-700 uppercase tracking-widest hover:border-indigo-300 hover:bg-slate-50 transition-all flex items-center justify-center space-x-4 shadow-sm group"
-                >
-                  <svg viewBox="0 0 24 24" className="w-5 h-5">
-                    <path fill="#EA4335" d="M5.266 9.765A7.077 7.077 0 0 1 12 4.909c1.69 0 3.218.6 4.418 1.582L19.91 3C17.782 1.145 15.055 0 12 0 7.27 0 3.198 2.698 1.24 6.65l4.026 3.115Z"/>
-                    <path fill="#34A853" d="M16.04 18.013c-1.09.593-2.325.896-3.618.896a6.953 6.953 0 0 1-6.837-5.009L1.444 17.02C3.415 21.056 7.57 24 12.422 24c3.15 0 6.015-1.006 8.242-2.731l-4.624-3.256Z"/>
-                    <path fill="#4285F4" d="M23.511 12.218c0-.825-.067-1.636-.211-2.427H12v4.591h6.464c-.286 1.514-1.145 2.8-2.424 3.631l4.624 3.256C23.36 18.84 24 15.65 24 12.218h-.489Z"/>
-                    <path fill="#FBBC05" d="M5.266 14.235a7.124 7.124 0 0 1 0-4.47L1.24 6.65a11.96 11.96 0 0 0 0 10.7l4.026-3.115Z"/>
-                  </svg>
-                  <span>{stage === AuthStage.LOGIN ? 'Login with Google' : 'Register with Google'}</span>
-                </button>
-              </div>
+                  <div className="space-y-2">
+                    <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                      Secure Passphrase
+                    </label>
+                    <input 
+                      type="password" 
+                      value={password} 
+                      onChange={e => setPassword(e.target.value)} 
+                      placeholder="••••••••" 
+                      className="w-full bg-[#f4f7fb] border-none rounded-2xl px-8 py-5 text-[#0a0d1a] font-medium text-sm focus:ring-2 focus:ring-indigo-100 outline-none transition-all placeholder:text-slate-300" 
+                      required 
+                    />
+                  </div>
+                </div>
 
-              <div className="text-center pt-10">
                 <button 
-                  onClick={() => onToggle(stage === AuthStage.LOGIN ? AuthStage.REGISTER : AuthStage.LOGIN)} 
-                  className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-colors"
+                  type="submit" 
+                  className="w-full py-5 bg-[#0a0d1a] text-white rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-slate-900 active:scale-[0.98] transition-all shadow-[0_15px_30px_rgba(10,13,26,0.15)]"
                 >
-                  {stage === AuthStage.LOGIN ? "Don't have an account? Join Now" : "Already a member? Sign In"}
+                  Verify & Continue
                 </button>
+              </form>
+
+              <div className="mt-10 space-y-8 animate-reveal">
+                <div className="relative flex items-center justify-center">
+                  <div className="absolute inset-0 flex items-center">
+                    <div className="w-full border-t border-slate-50"></div>
+                  </div>
+                  <span className="relative bg-white px-6 text-[8px] font-black text-slate-300 uppercase tracking-[0.4em]">
+                    Social Identity Hub
+                  </span>
+                </div>
+
+                <button 
+                  onClick={handleGoogleLogin}
+                  className="w-full flex items-center justify-center gap-4 py-4 bg-white border border-slate-100 text-slate-600 rounded-2xl font-black text-[10px] uppercase tracking-widest hover:bg-slate-50 active:scale-[0.98] transition-all"
+                >
+                  <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" className="w-4 h-4" alt="Google" />
+                  <span>Login with Google</span>
+                </button>
+
+                <div className="text-center pt-2">
+                  <button 
+                    onClick={() => onToggle(isLogin ? AuthStage.REGISTER : AuthStage.LOGIN)}
+                    className="text-[9px] font-black text-slate-400 uppercase tracking-widest hover:text-indigo-600 transition-all"
+                  >
+                    {isLogin ? "Don't have an account? Join Now" : "Already have an account? Sign In"}
+                  </button>
+                </div>
               </div>
             </>
           )}

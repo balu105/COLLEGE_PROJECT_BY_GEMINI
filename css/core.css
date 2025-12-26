@@ -1,0 +1,39 @@
+:root {
+  --indigo-primary: #4f46e5;
+  --indigo-glow: rgba(79, 70, 229, 0.4);
+  --emerald-primary: #10b981;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+  --glass-bg: rgba(255, 255, 255, 0.03);
+  --glass-border: rgba(255, 255, 255, 0.08);
+  --font-display: 'Plus Jakarta Sans', sans-serif;
+  --font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+  --ease-industrial: cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--slate-950);
+  color: #f8fafc;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+.bg-grid {
+  background-color: var(--slate-950);
+  background-image: radial-gradient(circle at 1px 1px, rgba(255, 255, 255, 0.05) 1px, transparent 0);
+  background-size: 32px 32px;
+}
+
+.container { width: 100%; max-width: 1400px; margin: 0 auto; padding: 0 2rem; }
+
+/* Global Utilities */
+.animate-rise {
+  animation: hireaiRise 0.8s var(--ease-industrial) forwards;
+  opacity: 0;
+}
+@keyframes hireaiRise {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: translateY(0); }
+}

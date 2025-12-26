@@ -1,0 +1,20 @@
+@layer components {
+  .hero-headline {
+    @apply font-black tracking-[-0.06em] leading-[0.85] text-white;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+
+  .precision-gradient {
+    @apply text-transparent bg-clip-text bg-gradient-to-r from-white via-white to-brand-indigo/60;
+    filter: drop-shadow(0 0 30px rgba(85, 81, 255, 0.3));
+  }
+
+  .nav-label {
+    @apply text-[10px] font-black text-slate-500 uppercase tracking-[0.35em] hover:text-white transition-all cursor-pointer;
+  }
+
+  .badge-node {
+    @apply inline-flex items-center px-6 py-2 bg-white/5 border border-white/10 rounded-full 
+           text-[9px] font-black text-brand-indigo uppercase tracking-[0.45em] shadow-2xl backdrop-blur-md;
+  }
+}

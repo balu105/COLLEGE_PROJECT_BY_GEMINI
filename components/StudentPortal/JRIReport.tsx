@@ -1,8 +1,8 @@
-
 import React, { useEffect, useState } from 'react';
 import { calculateJRI } from '../../services/aiClient';
 import { JRIReport as JRIReportInterface } from '../../types';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer } from 'recharts';
+import Loading from '../Loading';
 
 interface JRIReportProps {
   data: any;
@@ -28,27 +28,22 @@ const JRIReport: React.FC<JRIReportProps> = ({ data }) => {
 
   if (loading) {
     return (
-      <div className="flex flex-col items-center justify-center py-20 animate-pulse">
-        <div className="text-center space-y-6">
-          <div className="relative w-32 h-32 mx-auto">
-            <div className="absolute inset-0 border-8 border-indigo-100 rounded-[2.5rem] rotate-12"></div>
-            <div className="absolute inset-0 border-8 border-indigo-600 rounded-[2.5rem] border-t-transparent animate-spin"></div>
-            <i className="fas fa-building-circle-check absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-3xl text-indigo-600"></i>
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-slate-900 tracking-tight">AI Board Review</h2>
-            <p className="text-slate-500 font-medium">Analyzing results against 1M+ industry profiles...</p>
-          </div>
-        </div>
+      <div className="flex flex-col items-center justify-center py-20 min-h-[60vh]">
+        <Loading message="Assembling Final Verdict" subMessage="Synthesizing multidimensional data points" />
       </div>
     );
   }
 
   if (!report) return (
-    <div className="text-center py-20 bg-white rounded-[3rem] border border-slate-200">
-      <i className="fas fa-exclamation-triangle text-rose-500 text-4xl mb-4"></i>
-      <p className="font-black text-slate-900">Analysis Interrupted</p>
-      <p className="text-slate-500 text-sm">Could not generate report. Please try again.</p>
+    <div className="text-center py-32 hireai-card-solid max-w-2xl mx-auto space-y-8 border-rose-500/20">
+      <div className="w-20 h-20 bg-rose-500/10 text-rose-500 rounded-[2rem] border border-rose-500/20 flex items-center justify-center mx-auto text-3xl">
+         <i className="fas fa-exclamation-triangle"></i>
+      </div>
+      <div className="space-y-2">
+         <h2 className="text-3xl font-black text-white tracking-tight">System Interruption</h2>
+         <p className="text-slate-500 text-sm">Verdict generation sequence failed. Re-initialize connection.</p>
+      </div>
+      <button onClick={() => window.location.reload()} className="cta-secondary px-10">Retry Handshake</button>
     </div>
   );
 
@@ -60,110 +55,114 @@ const JRIReport: React.FC<JRIReportProps> = ({ data }) => {
   ];
 
   const verdictConfig = {
-    SELECTED: { color: 'emerald', icon: 'fa-check-double', label: 'Offer Highly Likely', sub: 'Top Tier Candidate' },
-    HIGHLY_RECOMMENDED: { color: 'indigo', icon: 'fa-award', label: 'Strong Alignment', sub: 'Recommended for Shortlist' },
-    NEEDS_GROWTH: { color: 'amber', icon: 'fa-seedling', label: 'Developing Talent', sub: 'Skills Refinement Needed' },
-  }[report.verdict as 'SELECTED' | 'HIGHLY_RECOMMENDED' | 'NEEDS_GROWTH'] || { color: 'slate', icon: 'fa-user', label: 'Review Complete', sub: 'Score Logged' };
+    SELECTED: { color: 'emerald', icon: 'fa-certificate', label: 'Primary Select', sub: 'High Fidelity Asset' },
+    HIGHLY_RECOMMENDED: { color: 'indigo', icon: 'fa-award', label: 'High Potential', sub: 'Recommended Placement' },
+    NEEDS_GROWTH: { color: 'amber', icon: 'fa-vial-circle-check', label: 'System Refinement', sub: 'Growth Vector Detected' },
+  }[report.verdict as 'SELECTED' | 'HIGHLY_RECOMMENDED' | 'NEEDS_GROWTH'] || { color: 'slate', icon: 'fa-user-check', label: 'Analysis Complete', sub: 'Verdict Archived' };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-10 animate-page-entry pb-20">
+    <div className="max-w-7xl mx-auto space-y-12 animate-reveal pb-32">
       {/* Hero Verdict Card */}
-      <div className={`bg-white rounded-[3.5rem] overflow-hidden relative border-2 border-${verdictConfig.color}-100 shadow-2xl shadow-${verdictConfig.color}-500/5`}>
-        <div className={`absolute top-0 right-0 w-[400px] h-[400px] bg-${verdictConfig.color}-500/5 rounded-full -mr-40 -mt-40`}></div>
-        <div className="p-12 relative z-10 flex flex-col lg:row items-center justify-between gap-12">
-          <div className="flex-1 space-y-6">
-            <div className={`inline-flex items-center px-4 py-1.5 bg-${verdictConfig.color}-50 text-${verdictConfig.color}-700 rounded-full text-[10px] font-black uppercase tracking-widest border border-${verdictConfig.color}-100`}>
-              <i className="fas fa-microchip mr-2"></i> Neural Evaluation Result
+      <div className={`hireai-card-solid overflow-hidden relative border-2 border-${verdictConfig.color}-500/20 shadow-2xl shadow-${verdictConfig.color}-500/5`}>
+        <div className={`absolute top-0 right-0 w-[600px] h-[600px] bg-${verdictConfig.color}-500/5 blur-[100px] rounded-full -mr-60 -mt-60`}></div>
+        <div className="p-16 relative z-10 flex flex-col xl:flex-row items-center justify-between gap-16">
+          <div className="flex-1 space-y-10 text-center xl:text-left">
+            <div className="badge-node !text-slate-400">
+              <i className="fas fa-shield-check mr-3"></i> System Validated Verdict
             </div>
-            <h2 className="text-5xl font-black text-slate-900 tracking-tighter leading-none">
+            <h2 className="text-6xl md:text-8xl font-black text-white tracking-tighter leading-none">
               {verdictConfig.label}
             </h2>
-            <p className="text-slate-500 text-xl font-medium max-w-2xl leading-relaxed">
+            <p className="text-slate-400 text-xl font-medium max-w-3xl leading-relaxed">
               {report.decisionSummary}
             </p>
           </div>
-          <div className="text-center">
-            <div className={`w-36 h-36 rounded-[3rem] bg-${verdictConfig.color}-600 flex items-center justify-center text-white shadow-2xl shadow-${verdictConfig.color}-600/30 ring-8 ring-${verdictConfig.color}-50 mb-6 mx-auto`}>
-              <i className={`fas ${verdictConfig.icon} text-5xl`}></i>
+          <div className="text-center xl:border-l xl:border-white/5 xl:pl-16">
+            <div className={`w-44 h-44 rounded-[3.5rem] bg-${verdictConfig.color}-600/10 flex items-center justify-center text-${verdictConfig.color}-500 shadow-2xl border border-${verdictConfig.color}-500/20 mb-10 mx-auto`}>
+              <i className={`fas ${verdictConfig.icon} text-6xl`}></i>
             </div>
-            <div className="space-y-1">
-               <p className={`text-xs font-black text-${verdictConfig.color}-600 uppercase tracking-widest`}>{verdictConfig.sub}</p>
-               <p className="text-5xl font-black text-slate-900">{report.overallScore}<span className="text-xl text-slate-300 ml-1">JRI</span></p>
+            <div className="space-y-2">
+               <p className={`text-xs font-black text-${verdictConfig.color}-400 uppercase tracking-[0.4em]`}>{verdictConfig.sub}</p>
+               <p className="text-7xl font-black text-white tracking-tighter">{report.overallScore}<span className="text-2xl text-slate-700 ml-2">JRI</span></p>
             </div>
           </div>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-12">
         {/* Radar Chart Section */}
-        <div className="lg:col-span-1 bg-white p-10 rounded-[3rem] border border-slate-200 shadow-sm flex flex-col">
-          <div className="mb-8">
-            <h3 className="text-xl font-black text-slate-900">Skill Radar</h3>
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">Benchmarked vs Industry</p>
+        <div className="xl:col-span-1 hireai-card-solid p-12 flex flex-col">
+          <div className="mb-12">
+            <h3 className="text-2xl font-black text-white uppercase tracking-tight">Skill Spectrum</h3>
+            <p className="text-xs font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">Neural Benchmarking Results</p>
           </div>
-          <div className="h-[320px] flex-1">
+          <div className="h-[380px] flex-1">
             <ResponsiveContainer width="100%" height="100%">
               <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData}>
-                <PolarGrid stroke="#f1f5f9" />
-                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 10, fontWeight: '800' }} />
+                <PolarGrid stroke="rgba(255,255,255,0.05)" />
+                <PolarAngleAxis dataKey="subject" tick={{ fill: '#64748b', fontSize: 11, fontWeight: '900' }} />
                 <PolarRadiusAxis angle={30} domain={[0, 100]} tick={false} axisLine={false} />
-                <Radar name="Market" dataKey="B" stroke="#cbd5e1" fill="#cbd5e1" fillOpacity={0.1} />
+                <Radar name="Market" dataKey="B" stroke="rgba(255,255,255,0.1)" fill="rgba(255,255,255,0.05)" fillOpacity={0.6} />
                 <Radar name="Candidate" dataKey="A" stroke="#4f46e5" fill="#4f46e5" fillOpacity={0.4} />
               </RadarChart>
             </ResponsiveContainer>
           </div>
-          <div className="mt-6 flex justify-center space-x-6">
-             <div className="flex items-center space-x-2">
-                <span className="w-3 h-3 rounded-full bg-slate-200"></span>
-                <span className="text-[10px] font-black text-slate-400 uppercase">Market</span>
+          <div className="mt-10 flex justify-center gap-10">
+             <div className="flex items-center space-x-3">
+                <span className="w-3 h-3 rounded-full bg-white/10"></span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Market</span>
              </div>
-             <div className="flex items-center space-x-2">
+             <div className="flex items-center space-x-3">
                 <span className="w-3 h-3 rounded-full bg-indigo-500"></span>
-                <span className="text-[10px] font-black text-indigo-500 uppercase">You</span>
+                <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest">Identity</span>
              </div>
           </div>
         </div>
 
-        {/* Improvements Section */}
-        <div className="lg:col-span-2 space-y-8">
-          <div className="flex items-center justify-between">
-            <h3 className="text-2xl font-black text-slate-900 tracking-tight">Growth Roadmap</h3>
-            <div className="px-4 py-2 bg-slate-900 text-white rounded-xl text-[10px] font-black uppercase tracking-widest">
-               AI Personalized
+        {/* Growth roadmap section */}
+        <div className="xl:col-span-2 space-y-12">
+          <div className="flex items-center justify-between px-4">
+            <h3 className="text-3xl font-black text-white tracking-tight uppercase">Optimization Roadmap</h3>
+            <div className="badge-node !bg-white/5 !border-white/10">
+               Neural Logic Applied
             </div>
           </div>
-          <div className="grid grid-cols-1 gap-6">
+          
+          <div className="grid grid-cols-1 gap-8">
             {report.improvements.map((imp, i) => (
-              <div key={i} className="bg-white p-10 rounded-[2.5rem] border border-slate-200 shadow-sm hover:translate-x-1 transition-all">
-                <div className="space-y-6">
+              <div key={i} className="hireai-card-solid p-12 hover:translate-x-2 transition-all hover:border-indigo-500/20">
+                <div className="space-y-8">
                   <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                      <div className="w-10 h-10 bg-indigo-50 text-indigo-600 rounded-xl flex items-center justify-center font-black">
+                    <div className="flex items-center space-x-6">
+                      <div className="w-14 h-14 bg-white/5 text-indigo-400 rounded-2xl flex items-center justify-center font-black border border-white/5 shadow-xl text-lg">
                         {imp.score}%
                       </div>
-                      <h4 className="text-xl font-black text-slate-900">{imp.domain}</h4>
+                      <div>
+                        <h4 className="text-2xl font-black text-white uppercase tracking-tight">{imp.domain}</h4>
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest mt-1">Growth Vector Identified</p>
+                      </div>
                     </div>
-                    <span className="text-[10px] font-black text-amber-600 uppercase tracking-widest bg-amber-50 px-3 py-1 rounded-lg">Gap Detected</span>
                   </div>
-                  <p className="text-sm font-medium text-slate-500 leading-relaxed italic">"{imp.gap}"</p>
                   
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-4 border-t border-slate-50">
-                     <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Strategic Action Plan</p>
-                        <ul className="space-y-2">
+                  <p className="text-lg font-medium text-slate-400 leading-relaxed italic border-l-4 border-indigo-500/20 pl-6">"{imp.gap}"</p>
+                  
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-12 pt-8 border-t border-white/5">
+                     <div className="space-y-6">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Operational Action Plan</p>
+                        <ul className="space-y-4">
                            {imp.actionPlan.map((a, j) => (
-                             <li key={j} className="flex items-start space-x-2 text-xs font-bold text-slate-700">
-                               <i className="fas fa-arrow-right text-indigo-400 mt-1 text-[8px]"></i>
+                             <li key={j} className="flex items-start space-x-4 text-sm font-bold text-slate-300">
+                               <i className="fas fa-chevron-right text-indigo-500 mt-1 text-[10px]"></i>
                                <span>{a}</span>
                              </li>
                            ))}
                         </ul>
                      </div>
-                     <div className="space-y-3">
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Suggested Skill-Up</p>
-                        <div className="flex flex-wrap gap-2">
+                     <div className="space-y-6">
+                        <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">Knowledge Resources</p>
+                        <div className="flex flex-wrap gap-3">
                            {imp.suggestedResources.map((r, k) => (
-                             <span key={k} className="px-3 py-1.5 bg-indigo-50 text-indigo-600 rounded-lg text-[10px] font-black">
+                             <span key={k} className="px-4 py-2 bg-white/5 text-indigo-400 rounded-xl text-[10px] font-black border border-white/5 uppercase tracking-widest">
                                {r}
                              </span>
                            ))}
@@ -175,30 +174,33 @@ const JRIReport: React.FC<JRIReportProps> = ({ data }) => {
             ))}
           </div>
 
-          {/* Search Grounding Section */}
+          {/* Search grounding section */}
           {report.groundingSources && report.groundingSources.length > 0 && (
-            <div className="bg-slate-950 p-10 rounded-[3rem] shadow-2xl shadow-indigo-500/10 space-y-6">
+            <div className="hireai-card-solid p-12 shadow-2xl shadow-indigo-500/10 space-y-8 border-indigo-500/20">
                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-3 text-indigo-400">
-                     <i className="fas fa-globe-americas"></i>
-                     <h3 className="text-sm font-black uppercase tracking-widest">Live Market Intelligence</h3>
+                  <div className="flex items-center space-x-4 text-indigo-400">
+                     <i className="fas fa-radar text-xl animate-pulse"></i>
+                     <h3 className="text-sm font-black uppercase tracking-[0.4em]">Live Intelligence Feeds</h3>
                   </div>
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></div>
+                  <div className="flex items-center gap-2">
+                     <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                     <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">Synched</span>
+                  </div>
                </div>
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {report.groundingSources.map((source, idx) => (
                     <a 
                       key={idx} 
                       href={source.uri} 
                       target="_blank" 
                       rel="noopener noreferrer"
-                      className="p-5 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all flex items-center justify-between group"
+                      className="p-6 bg-white/5 hover:bg-white/10 border border-white/5 rounded-2xl transition-all flex items-center justify-between group"
                     >
-                      <div className="flex-1">
-                        <p className="text-[11px] font-black text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{source.title}</p>
-                        <p className="text-[9px] text-slate-500 font-bold mt-1">Verified Resource</p>
+                      <div className="flex-1 pr-4">
+                        <p className="text-xs font-black text-white group-hover:text-indigo-400 transition-colors line-clamp-1">{source.title}</p>
+                        <p className="text-[9px] text-slate-600 font-bold mt-1 uppercase tracking-widest">Verified External Node</p>
                       </div>
-                      <i className="fas fa-external-link-alt text-slate-700 group-hover:text-indigo-400 text-xs transition-colors"></i>
+                      <i className="fas fa-arrow-up-right-from-square text-slate-700 group-hover:text-indigo-400 text-xs transition-colors"></i>
                     </a>
                   ))}
                </div>

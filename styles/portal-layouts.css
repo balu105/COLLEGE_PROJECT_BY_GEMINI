@@ -1,0 +1,32 @@
+@layer components {
+  /* IDE & Coding Assessment */
+  .ide-workspace {
+    @apply bg-[#01040a] border border-white/5 rounded-[2.5rem] overflow-hidden flex flex-col shadow-inner;
+  }
+
+  .ide-toolbar {
+    @apply h-14 bg-[#0d1117] border-b border-white/5 px-8 flex items-center justify-between;
+  }
+
+  /* Assessment HUD Elements */
+  .hud-scanline {
+    @apply absolute top-0 left-0 right-0 h-[2px] z-10 pointer-events-none;
+    background: rgba(85, 81, 255, 0.4);
+    box-shadow: 0 0 10px var(--brand-indigo);
+    animation: hudScan 4s linear infinite;
+  }
+
+  @keyframes hudScan {
+    0% { transform: translateY(0); }
+    100% { transform: translateY(600px); }
+  }
+
+  /* Dashboard Adjustments */
+  .recharts-polar-grid-concentric-path {
+    @apply stroke-white/5 !important;
+  }
+  
+  .recharts-polar-angle-axis-line {
+    @apply stroke-white/10 !important;
+  }
+}

@@ -1,0 +1,19 @@
+@layer base {
+  :root {
+    --brand-indigo: #5551ff;
+    --brand-emerald: #10b981;
+    --obsidian: #020410;
+    --navy: #0a0d1a;
+    --ease-industrial: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  
+  body {
+    @apply bg-[#020410] text-slate-400 antialiased overflow-x-hidden;
+    font-family: 'Inter', system-ui, sans-serif;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply text-white font-black tracking-tighter;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}

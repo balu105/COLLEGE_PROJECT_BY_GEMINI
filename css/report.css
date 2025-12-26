@@ -1,0 +1,46 @@
+/* --- Verdict Report Isolation v15.0 --- */
+.verdict-header {
+  padding: 4rem;
+  background: white;
+  border-radius: 3.5rem;
+  color: #020617;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 3rem;
+  margin-bottom: 3rem;
+}
+
+.verdict-main {
+  font-size: 5rem;
+  font-weight: 900;
+  line-height: 0.9;
+  letter-spacing: -0.05em;
+}
+
+.roadmap-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+  gap: 2rem;
+}
+
+.milestone-card {
+  padding: 2.5rem;
+  background: white;
+  border-radius: 2.5rem;
+  color: #020617;
+  border: 1px solid #f1f5f9;
+  transition: transform 0.3s ease;
+}
+
+.milestone-card:hover { transform: translateX(10px); border-color: var(--indigo-primary); }
+
+.milestone-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: var(--indigo-primary);
+  letter-spacing: 0.2em;
+  margin-bottom: 1rem;
+  display: block;
+}

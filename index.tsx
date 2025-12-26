@@ -1,14 +1,15 @@
+import './index.css';
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
-import './index.css';
 
-const rootElement = document.getElementById('root');
-if (!rootElement) {
-  throw new Error("Could not find root element to mount to");
+const mountNode = document.getElementById('root');
+
+if (!mountNode) {
+  throw new Error("Target container 'root' not found. Infrastructure failed to initialize.");
 }
 
-const root = ReactDOM.createRoot(rootElement);
+const root = ReactDOM.createRoot(mountNode);
 root.render(
   <React.StrictMode>
     <App />

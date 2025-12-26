@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { UserRole, AuthStage, AssessmentStage, AppState, CandidateProfile } from './types';
 import { dbService } from './services/dbService';
@@ -14,6 +13,7 @@ import JRIReport from './components/StudentPortal/JRIReport';
 import AdminDashboard from './components/AdminPortal/AdminDashboard';
 import StudentDashboard from './components/StudentPortal/StudentDashboard';
 import AdminProfile from './components/AdminPortal/AdminProfile';
+import Loading from './components/Loading';
 
 interface ExtendedAppState extends AppState {
   isAdminAuthenticated: boolean;
@@ -77,10 +77,6 @@ const App: React.FC = () => {
     }
   };
 
-  /**
-   * Universal function to update the candidate's cloud-synced state.
-   * This handles coding results, interview transcripts, and profile changes.
-   */
   const handleUpdateProfile = async (updatedFields: Partial<CandidateProfile>) => {
     if (!state.user) return;
     
@@ -92,11 +88,9 @@ const App: React.FC = () => {
       return;
     }
 
-    // Deep merge fields to ensure we never lose results (transcripts, code, etc)
     const fullProfile: CandidateProfile = {
       ...state.user,
       ...updatedFields,
-      // Priority updates from state if not explicitly passed
       technicalResult: updatedFields.technicalResult || state.user.technicalResult || state.technical,
       interviewResult: updatedFields.interviewResult || state.user.interviewResult || state.interview,
       currentStage: updatedFields.currentStage || state.assessmentStage
@@ -138,22 +132,15 @@ const App: React.FC = () => {
     });
   };
 
-  if (state.isLoading) return (
-    <div className="h-screen w-screen flex flex-col items-center justify-center bg-[#0f172a] space-y-8 text-white">
-      <div className="relative w-24 h-24">
-        <div className="absolute inset-0 border-4 border-indigo-500/10 rounded-[2.5rem] rotate-45 scale-110"></div>
-        <div className="absolute inset-0 border-4 border-indigo-500 rounded-[2.5rem] border-t-transparent animate-spin"></div>
-        <i className="fas fa-terminal absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-2xl text-indigo-400"></i>
-      </div>
-      <div className="text-center space-y-3">
-        <p className="font-black text-2xl tracking-tighter text-white">HireAI Pipeline</p>
-        <div className="flex items-center justify-center space-x-3">
-          <span className="flex h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-          <p className="text-slate-500 text-[10px] font-black uppercase tracking-[0.4em]">Synchronizing Vault Integrity</p>
-        </div>
-      </div>
-    </div>
-  );
+  if (state.isLoading) {
+    return (
+      <Loading 
+        message="HireAI Infrastructure" 
+        subMessage="Synchronizing Vault Integrity" 
+        fullScreen={true} 
+      />
+    );
+  }
 
   if (state.role === UserRole.GUEST) {
     return <Landing onSelectRole={(role) => setState(prev => ({ ...prev, role }))} />;

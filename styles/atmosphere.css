@@ -1,0 +1,59 @@
+@layer components {
+  .neural-bg {
+    @apply fixed inset-0 z-0 pointer-events-none overflow-hidden bg-[#020410];
+  }
+
+  .bg-grid-ambient {
+    @apply absolute inset-0 opacity-[0.4];
+    background-image: radial-gradient(rgba(255, 255, 255, 0.05) 1.2px, transparent 0);
+    background-size: 48px 48px;
+    mask-image: radial-gradient(circle at center, black, transparent 85%);
+  }
+
+  .glow-center {
+    @apply absolute pointer-events-none rounded-full blur-[160px] opacity-[0.12];
+    background: radial-gradient(circle, var(--brand-indigo) 0%, transparent 70%);
+  }
+
+  .aurora-orb {
+    @apply absolute rounded-full blur-[120px] opacity-[0.06];
+    background: var(--brand-indigo);
+  }
+
+  .scanline {
+    @apply fixed inset-0 pointer-events-none z-[100] opacity-[0.03];
+    background: linear-gradient(
+      rgba(18, 16, 16, 0) 50%, 
+      rgba(0, 0, 0, 0.2) 50%
+    ), linear-gradient(
+      90deg, 
+      rgba(255, 0, 0, 0.04), 
+      rgba(0, 255, 0, 0.01), 
+      rgba(0, 0, 255, 0.04)
+    );
+    background-size: 100% 4px, 4px 100%;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    50% { transform: translate(40px, -60px) scale(1.1); }
+  }
+
+  .animate-float {
+    animation: float 15s ease-in-out infinite;
+  }
+
+  .animate-reveal {
+    animation: reveal 1.2s var(--ease-industrial) forwards;
+  }
+
+  @keyframes reveal {
+    0% { opacity: 0; transform: translateY(40px) scale(0.98); }
+    100% { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  @keyframes hireaiRise {
+    0% { opacity: 0; transform: translateY(20px); }
+    100% { opacity: 1; transform: translateY(0); }
+  }
+}

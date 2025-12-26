@@ -1,0 +1,70 @@
+/* --- Assessment Styling v16.0 --- */
+.assessment-card {
+  background: rgba(255, 255, 255, 0.02);
+  backdrop-filter: blur(40px);
+  border: 1px solid var(--glass-border);
+  border-radius: 3rem;
+  padding: 4rem;
+  box-shadow: 0 40px 100px -20px rgba(0,0,0,0.5);
+}
+
+.neural-drop-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 3rem;
+  padding: 8rem 4rem;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.01);
+  transition: all 0.4s var(--ease-industrial);
+  cursor: pointer;
+}
+
+.neural-drop-zone:hover {
+  border-color: var(--indigo-primary);
+  background: rgba(255, 255, 255, 0.03);
+  transform: scale(1.01);
+}
+
+.biometric-camera-frame {
+  aspect-ratio: 16/9;
+  background: #000;
+  border-radius: 3rem;
+  border: 6px solid white;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 60px 120px -30px rgba(0,0,0,0.8);
+}
+
+.hud-scanline {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: rgba(85, 81, 255, 0.4);
+  box-shadow: 0 0 10px var(--indigo-primary);
+  animation: hudScan 4s linear infinite;
+  z-index: 5;
+}
+
+@keyframes hudScan {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100vh); }
+}
+
+.ide-workspace {
+  background: #01040a;
+  border: 1px solid var(--glass-border);
+  border-radius: 2.5rem;
+  overflow: hidden;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+}
+
+.ide-toolbar {
+  height: 3.5rem;
+  background: #0d1117;
+  border-bottom: 1px solid var(--glass-border);
+  padding: 0 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

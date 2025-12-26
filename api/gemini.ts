@@ -1,11 +1,11 @@
-
 import { GoogleGenAI, Type } from "@google/genai";
 
 const safeJsonParse = (text: string | undefined) => {
-  if (!text) return {};
+  if (!text) return { error: "Empty model output" };
   try {
     let cleaned = text.replace(/```json\n?|```/g, '').trim();
     
+    // Attempt to locate the first JSON object or array
     const firstBrace = cleaned.indexOf('{');
     const firstBracket = cleaned.indexOf('[');
     let start = -1;
@@ -26,21 +26,26 @@ const safeJsonParse = (text: string | undefined) => {
     return JSON.parse(cleaned);
   } catch (e) {
     console.error("Gemini Backend JSON Parse Error:", e);
-    // Desperation fix for AI artifacts
-    try {
-       const desperate = text?.match(/[\{\[].*[\}\]]/s);
-       return desperate ? JSON.parse(desperate[0]) : { error: "Parse failure" };
-    } catch {
-       return { error: "Failed to parse model response", raw: text };
+    // Last-ditch effort with regex
+    const match = text.match(/[\{\[].*[\}\]]/s);
+    if (match) {
+      try {
+        return JSON.parse(match[0]);
+      } catch {
+        return { error: "Final parse failure", raw: text };
+      }
     }
+    return { error: "JSON extraction failed", raw: text };
   }
 };
 
 export default async function handler(req: any, res: any) {
+  // CORS Headers for serverless environment
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
   if (req.method === 'OPTIONS') {
-    res.setHeader('Access-Control-Allow-Origin', '*');
-    res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
     return res.status(200).end();
   }
 
@@ -51,7 +56,7 @@ export default async function handler(req: any, res: any) {
   const { action, payload } = req.body;
 
   if (!process.env.API_KEY) {
-    return res.status(500).json({ error: 'API_KEY is missing on server.' });
+    return res.status(500).json({ error: 'Kernel Configuration Failure: API Key missing in server environment.' });
   }
 
   try {
@@ -61,7 +66,7 @@ export default async function handler(req: any, res: any) {
       case 'generateJobDescription': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Generate a professional job description for: "${payload.role}". Output valid JSON only.`,
+          contents: `Generate a professional job description for: "${payload.role}". Output valid JSON.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -77,7 +82,7 @@ export default async function handler(req: any, res: any) {
       case 'analyzeResume': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `ATS Analysis for "${payload.targetRole}". Resume: ${payload.resumeText}. Target JD: ${payload.targetJD}. Output JSON strictly.`,
+          contents: `Analyze resume for "${payload.targetRole}". Resume Text: ${payload.resumeText}. Target JD: ${payload.targetJD}. Output JSON strictly.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -97,10 +102,9 @@ export default async function handler(req: any, res: any) {
 
       case 'generateCodingChallenge': {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `Generate 3 coding challenges for "${payload.role}". Use clean, real test cases. DO NOT use repetitive date/time filler.`,
+          model: "gemini-3-flash-preview",
+          contents: `Generate 3 coding challenges for "${payload.role}". Skills: ${payload.skills?.join(', ')}.`,
           config: {
-            thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.ARRAY,
@@ -118,8 +122,7 @@ export default async function handler(req: any, res: any) {
                       type: Type.OBJECT,
                       properties: {
                         input: { type: Type.STRING },
-                        output: { type: Type.STRING },
-                        explanation: { type: Type.STRING }
+                        output: { type: Type.STRING }
                       }
                     }
                   }
@@ -134,10 +137,9 @@ export default async function handler(req: any, res: any) {
 
       case 'evaluateCode': {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `Evaluate technical submissions: \n${JSON.stringify(payload.challenges.map((c: any, i: number) => ({ title: c.title, solution: payload.codes[i] })))}`,
+          model: "gemini-3-flash-preview",
+          contents: `Evaluate technical solutions: \n${JSON.stringify(payload.challenges.map((c: any, i: number) => ({ title: c.title, solution: payload.codes[i] })))}`,
           config: {
-            thinkingConfig: { thinkingBudget: 16384 },
             responseMimeType: "application/json",
             responseSchema: {
               type: Type.OBJECT,
@@ -156,8 +158,8 @@ export default async function handler(req: any, res: any) {
 
       case 'getNextInterviewQuestion': {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `AI Interviewer for "${payload.role}". Transcript: \n${payload.transcript.join('\n')}.`,
+          model: "gemini-3-flash-preview",
+          contents: `AI Interviewer for "${payload.role}". Transcript history: \n${payload.transcript.join('\n')}.`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -172,8 +174,8 @@ export default async function handler(req: any, res: any) {
 
       case 'evaluateInterview': {
         const response = await ai.models.generateContent({
-          model: "gemini-3-pro-preview",
-          contents: `Evaluate performance based on transcript: \n${payload.transcript.join('\n')}`,
+          model: "gemini-3-flash-preview",
+          contents: `Evaluate interview transcript: \n${payload.transcript.join('\n')}`,
           config: {
             responseMimeType: "application/json",
             responseSchema: {
@@ -194,17 +196,19 @@ export default async function handler(req: any, res: any) {
       case 'calculateJRI': {
         const response = await ai.models.generateContent({
           model: "gemini-3-flash-preview",
-          contents: `Calculate JRI. Data: ${JSON.stringify(payload.data)}. Ground with Search.`,
-          config: { tools: [{ googleSearch: {} }] }
+          contents: `Calculate Job Readiness Index (JRI) for candidate: ${JSON.stringify(payload.data)}. Output JSON with scores and improvements. Use Google Search for market benchmarking.`,
+          config: { 
+            tools: [{ googleSearch: {} }]
+          }
         });
         return res.status(200).json({ text: response.text, metadata: response.candidates?.[0]?.groundingMetadata });
       }
 
       default:
-        return res.status(400).json({ error: 'Invalid action' });
+        return res.status(400).json({ error: 'Kernel Execution Fault: Invalid sequence request.' });
     }
   } catch (error: any) {
-    console.error('Gemini Backend Error:', error);
-    return res.status(500).json({ error: 'Model execution failed', details: error.message });
+    console.error('Gemini Backend Serverless Error:', error);
+    return res.status(500).json({ error: 'Infrastructure Execution Fault', details: error.message });
   }
 }
